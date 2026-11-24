@@ -76,7 +76,9 @@
     const H = Math.max(svg.clientHeight, 110);
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     svg.innerHTML = "";
-    const top = window.matchMedia("(max-width:760px)").matches ? 10 : 50, bot = 10;
+    const top = window.matchMedia("(max-width:760px)").matches ? 10 : 50;
+    const STRIP = Math.round(Math.min(64, Math.max(46, H * 0.27))), GAP = 14;
+    const bot = STRIP + GAP;
     const vals = m.close.concat(m.sma150);
     let lo = Math.min(...vals), hi = Math.max(...vals);
     const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
@@ -109,6 +111,45 @@
 
     const lastP = pricePts[pricePts.length - 1];
     el("circle", { cx: lastP[0], cy: lastP[1], r: 3.5, fill: color }, svg);
+
+    drawVolume(svg, m.volume, x, H - STRIP, STRIP, W);
+  }
+
+  // ---------- dollar volume strip ----------
+  function fmtUsd(v) {
+    const a = Math.abs(v);
+    if (a >= 1e12) return "$" + (v / 1e12).toFixed(2) + "T";
+    if (a >= 1e9) return "$" + (v / 1e9).toFixed(1) + "B";
+    if (a >= 1e6) return "$" + (v / 1e6).toFixed(1) + "M";
+    if (a >= 1e3) return "$" + (v / 1e3).toFixed(1) + "K";
+    return "$" + Math.round(v);
+  }
+  function drawVolume(svg, vol, x, y0, h, W) {
+    const g = el("g", { class: "dv" }, svg);
+    el("line", { x1: 0, x2: W, y1: y0 - 6, y2: y0 - 6, class: "dv-sep" }, g);
+    const lab = el("text", { x: 2, y: y0 + 6, class: "dv-label" }, g);
+    if (!vol || !vol.dv || !vol.dv.length) {
+      lab.textContent = "Dollar Volume · No volume data";
+      return;
+    }
+    const ts = vol.dates.map(toT);
+    const max = Math.max(...vol.dv, ...vol.avg50.filter((v) => v != null)) || 1;
+    const bw = Math.max(1, (W / Math.max(ts.length, 1)) * 0.72);
+    const yb = y0 + h;
+    vol.dv.forEach((v, i) => {
+      if (!(v > 0)) return;
+      const bh = Math.max(1, (v / max) * (h - 12));
+      el("rect", { x: (x(ts[i]) - bw / 2).toFixed(1), y: (yb - bh).toFixed(1), width: bw.toFixed(1), height: bh.toFixed(1),
+        class: vol.up[i] ? "dv-up" : "dv-down" }, g);
+    });
+    const ap = vol.avg50.map((v, i) => v == null ? null : [x(ts[i]).toFixed(1), (yb - (v / max) * (h - 12)).toFixed(1)]).filter(Boolean);
+    if (ap.length > 1) el("path", { d: "M" + ap.map((p) => p.join(",")).join("L"), class: "dv-avg" }, g);
+    const d = vol.lastDate;
+    const md = new Date(toT(d)).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    lab.innerHTML = `<tspan class="dv-title">Dollar Volume</tspan><tspan class="dv-val" dx="6">${fmtUsd(vol.last)}</tspan>` +
+      (W < 560
+        ? `<tspan class="dv-note" dx="6">${esc(md)}${vol.partial ? " (partial)" : ""} · ${esc(vol.kind === "futures" ? vol.symbol.replace("=F", "") + " futures" : vol.note)}</tspan>`
+        : `<tspan class="dv-note" dx="6">${esc(md)}${vol.partial ? " (partial day)" : ""} · 50d avg ${fmtUsd(vol.avg50[vol.avg50.length - 1] || 0)} · ${esc(vol.note)}</tspan>`);
   }
 
   function drawAxis(dom) {

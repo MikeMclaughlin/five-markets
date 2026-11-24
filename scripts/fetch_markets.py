@@ -48,6 +48,81 @@ def fetch(symbol):
     raise RuntimeError(f"{symbol}: {last_err}")
 
 
+# Dollar volume: real traded volume only. Futures notional = contracts x price x multiplier;
+# fall back to an ETF's shares x price when the futures volume is missing or thin.
+DV_AVG_N = 50
+VOLUME = {
+    "stocks": [("RSP", 1, "etf")],
+    "tnx": [("ZN=F", 1000, "futures"), ("IEF", 1, "etf")],
+    "bonds": [("ZB=F", 1000, "futures"), ("TLT", 1, "etf")],
+    "dollar": [("DX=F", 1000, "futures"), ("UUP", 1, "etf")],
+    "gold": [("GC=F", 100, "futures"), ("GLD", 1, "etf")],
+}
+FUT_NAMES = {"ZN=F": "ZN 10Y note", "ZB=F": "ZB 30Y bond", "DX=F": "DX dollar index", "GC=F": "GC gold"}
+
+
+def _et_now():
+    from zoneinfo import ZoneInfo
+    return datetime.now(ZoneInfo("America/New_York"))
+
+
+def fetch_ohlcv(symbol):
+    url = ("https://query1.finance.yahoo.com/v8/finance/chart/"
+           + urllib.parse.quote(symbol) + "?range=2y&interval=1d&includePrePost=false")
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (five-markets)"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        res = (json.load(r).get("chart") or {}).get("result")
+    if not res:
+        raise RuntimeError(f"{symbol}: no chart data")
+    res = res[0]
+    off = res.get("meta", {}).get("gmtoffset", 0)
+    q = res["indicators"]["quote"][0]
+    pts = {}
+    for t, c, v in zip(res["timestamp"], q["close"], q["volume"]):
+        if c is None:
+            continue
+        d = datetime.fromtimestamp(t + off, tz=timezone.utc).strftime("%Y-%m-%d")
+        pts[d] = (c, v or 0)
+    return sorted(pts.items())
+
+
+def build_volume(mid, start_date):
+    notes = []
+    for sym, mult, kind in VOLUME.get(mid, []):
+        try:
+            rows = fetch_ohlcv(sym)
+        except Exception as e:
+            notes.append(f"{sym}: {e}")
+            continue
+        dates = [d for d, _ in rows]
+        closes = [c for _, (c, _) in rows]
+        dv = [c * v * mult for _, (c, v) in rows]
+        try:
+            i0 = next(i for i, d in enumerate(dates) if d >= start_date)
+        except StopIteration:
+            notes.append(f"{sym}: no recent data")
+            continue
+        vis = dv[i0:]
+        zero = sum(1 for x in vis if x <= 0)
+        if not vis or zero > 0.1 * len(vis) or vis[-1] <= 0 and vis[-2] <= 0:
+            notes.append(f"{sym}: thin/zero volume ({zero}/{len(vis)} empty days)")
+            continue
+        up, avg = [], []
+        for i in range(i0, len(dates)):
+            up.append(1 if i > 0 and closes[i] >= closes[i - 1] else 0)
+            win = [x for x in dv[max(0, i - DV_AVG_N + 1):i + 1] if x > 0]
+            avg.append(round(sum(win) / len(win)) if win else None)
+        return {
+            "symbol": sym, "kind": kind, "multiplier": mult,
+            "note": f"{FUT_NAMES.get(sym, sym)} futures notional" if kind == "futures" else f"via {sym}",
+            "dates": dates[i0:], "dv": [round(x) for x in vis], "up": up, "avg50": avg,
+            "last": round(vis[-1]), "lastDate": dates[-1], "skipped": notes,
+            "partial": dates[-1] == _et_now().strftime("%Y-%m-%d") and _et_now().hour < 17,
+        }
+    print("no volume data for", mid, notes, file=sys.stderr)
+    return None
+
+
 def build(m):
     used = m["symbol"]
     try:
@@ -85,6 +160,7 @@ def build(m):
         "smaLast": round(last_sma, dec),
         "pctFromSma": round((last / last_sma - 1) * 100, 2),
         "above": above, "smaSlope": "up" if up else "down", "trend": trend,
+        "volume": build_volume(m["id"], dates[start]),
     }
 
 

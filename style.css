@@ -39,7 +39,7 @@ button:disabled{opacity:.6;cursor:progress}
 
 .panels{display:flex;flex-direction:column;gap:12px}
 .card{display:grid;grid-template-columns:20% 1fr;align-items:stretch;background:linear-gradient(180deg,var(--panel-2),var(--panel));
-  border:1px solid var(--line);border-radius:14px;min-height:176px;overflow:hidden}
+  border:1px solid var(--line);border-radius:14px;min-height:236px;overflow:hidden}
 .info{padding:16px 10px 14px 20px;display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0}
 .name{font-family:var(--serif);font-size:clamp(22px,2.4vw,32px);font-weight:600;line-height:1.1}
 .sub{color:var(--muted);font-size:13px}
@@ -47,7 +47,7 @@ button:disabled{opacity:.6;cursor:progress}
 .vals b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
 .vals .s{color:var(--sma)}
 .chart{position:relative;min-width:0;padding:10px 14px 8px 0}
-.chart svg{display:block;width:100%;height:100%;min-height:156px;overflow:visible}
+.chart svg{display:block;width:100%;height:100%;min-height:216px;overflow:visible}
 .pill{position:absolute;top:10px;right:14px;z-index:2;font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;
   border:1.5px solid currentColor;background:rgba(11,18,38,.78);backdrop-filter:blur(4px);white-space:nowrap;font-variant-numeric:tabular-nums}
 .pill.up{color:var(--green);box-shadow:0 0 12px rgba(46,230,160,.25)}
@@ -60,6 +60,14 @@ button:disabled{opacity:.6;cursor:progress}
 
 .card.p-above{background:linear-gradient(180deg,#0f2e22,#0b2219);border-color:rgba(46,230,160,.32)}
 .card.p-below{background:linear-gradient(180deg,#3a1426,#2a0f1c);border-color:rgba(255,77,106,.32)}
+.dv-sep{stroke:rgba(255,255,255,.08);stroke-width:1}
+.dv-up{fill:rgba(46,230,160,.55)}
+.dv-down{fill:rgba(255,110,135,.6)}
+.dv-avg{fill:none;stroke:rgba(235,240,255,.8);stroke-width:1.2}
+.dv-label{font-size:11px;fill:var(--muted)}
+.dv-title{fill:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.dv-val{fill:var(--text);font-weight:700;font-variant-numeric:tabular-nums}
+.dv-note{fill:var(--muted)}
 .skeleton .info *,.skeleton .chart{opacity:.35}
 .shimmer{position:absolute;inset:18px 18px 18px 0;border-radius:10px;background:linear-gradient(90deg,#16224a 0,#1d2b58 50%,#16224a 100%);background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
@@ -71,6 +79,8 @@ button:disabled{opacity:.6;cursor:progress}
 .key{display:flex;flex-wrap:wrap;gap:8px 22px;margin:12px 0 0;color:var(--muted);font-size:12.5px}
 .key i{display:inline-block;width:22px;height:3px;border-radius:3px;margin-right:8px;vertical-align:middle}
 .k-price{background:var(--green);box-shadow:0 0 6px var(--green)}
+.k-dv{background:linear-gradient(90deg,rgba(46,230,160,.6) 50%,rgba(255,77,106,.6) 50%);height:8px!important;width:14px!important}
+.k-avg{background:rgba(235,240,255,.8);height:1.5px!important}
 .k-sma{background:var(--sma);height:4px!important;box-shadow:0 0 6px rgba(255,230,0,.6)}
 footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px 24px;color:var(--muted);font-size:12.5px}
 footer b{color:var(--text);font-weight:500}
@@ -111,7 +121,8 @@ footer span:last-child{margin-left:auto}
   .vals b{margin-right:10px}
   .chart{padding:4px 10px 6px 4px;position:static}
   .card{position:relative}
-  .chart svg{height:140px;min-height:0}
+  .chart svg{height:196px;min-height:0}
+  .dv-label{font-size:10px}
   .pill{top:12px;right:12px;font-size:11.5px;padding:4px 9px}
   .trend{top:40px;right:12px;font-size:10px}
   .axis-row{grid-template-columns:1fr}

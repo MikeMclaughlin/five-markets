@@ -21,6 +21,22 @@ A one-page dashboard of five markets, each plotted as ~12 months of daily closes
   Last price and SMA value are shown under each market name.
 - **Panel shading** follows the pill: dark green background when price is above the 150 SMA, dark pink when below (updates with every data refresh).
 
+## Dollar Volume strip (v1.4)
+The bottom of each panel shows daily **dollar volume** bars (green = up day, red = down day) on the same
+time axis, with a thin 50-day average line and the latest value. Only real traded volume is used:
+
+| Panel | Primary | Fallback |
+|---|---|---|
+| Stocks | RSP shares × price | — |
+| 10-Year Yield | ZN=F contracts × price × 1,000 | IEF |
+| Bonds | ZB=F contracts × price × 1,000 | TLT |
+| US Dollar | DX=F contracts × price × 1,000 | UUP |
+| Gold | GC=F contracts × price × 100 | GLD |
+
+A futures series is skipped for its ETF fallback if Yahoo returns no data or more than 10% empty
+days. If nothing is available the strip says "No volume data". Futures bars for the current day are
+marked "partial" until the session closes; futures volume also spikes around quarterly contract rolls.
+
 ## Market Outlook sign
 Above the panels, a **Market Outlook** card combines the five trend states into one rule-based read
 for stocks (intermarket logic, scored from the equity market's point of view):
@@ -63,4 +79,4 @@ python3 scripts/fetch_markets.py   # writes data/markets.json
 python3 -m http.server 8000        # open http://localhost:8000
 ```
 
-v1.3
+v1.4
