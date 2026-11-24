@@ -2,8 +2,8 @@ name: Update data and deploy Pages
 
 on:
   schedule:
-    # Every 30 minutes at :07/:37, Mon–Fri, roughly 8:00 AM – 6:30 PM ET (13:00–23:30 UTC)
-    - cron: "7,37 13-23 * * 1-5"
+    # Every 4 hours, Mon–Fri: 8:07 AM, 12:07 PM, 4:07 PM ET (13:07, 17:07, 21:07 UTC)
+    - cron: "7 13,17,21 * * 1-5"
   workflow_dispatch:
   push:
     branches: [master]
