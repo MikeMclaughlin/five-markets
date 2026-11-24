@@ -3,7 +3,7 @@
 Live page: **https://mikemclaughlin.github.io/five-markets/**
 
 A one-page dashboard of five markets, each plotted as ~12 months of daily closes with its
-**150-day simple moving average** (the gold line).
+**150-day simple moving average** (the yellow line).
 
 | Panel | Market | Ticker (Yahoo Finance) |
 |---|---|---|
