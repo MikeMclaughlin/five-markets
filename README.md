@@ -20,6 +20,24 @@ A one-page dashboard of five markets, each plotted as ~12 months of daily closes
 - **Top-right pill** on each panel: "Above 150 SMA" / "Below 150 SMA" with % distance from the SMA.
   Last price and SMA value are shown under each market name.
 
+## Market Outlook sign
+Above the panels, a **Market Outlook** card combines the five trend states into one rule-based read
+for stocks (intermarket logic, scored from the equity market's point of view):
+
+| Market | Bullish trend | Bearish trend | Why |
+|---|---|---|---|
+| Stocks | +2 | −2 | the trend itself, double weight |
+| 10-Year Yield | −1 | +1 | rising rates tighten financial conditions |
+| Bonds | +1 | −1 | mirrors yields |
+| US Dollar | −1 | +1 | a strong dollar tightens global liquidity and hurts earnings |
+| Gold | −0.5 | +0.5 | fear / inflation hedging; half weight because the signal is ambiguous |
+
+Mixed = 0. Total ranges −5.5 to +5.5 and maps to: **≥ +3** Strong Tailwind · **+1 to +2.5** Tailwind ·
+**−0.5 to +0.5** Neutral–Choppy · **−1 to −2.5** Headwind · **≤ −3** Strong Headwind.
+The card shows the headline, a plain-English sentence built from the actual combination, per-market
+contribution chips and an expandable "How this is scored" note. It is recomputed in the browser on
+every data refresh. *Rule-based trend read, not a forecast or investment advice.*
+
 ## How updates work
 1. **Data pipeline** – `.github/workflows/update-and-deploy.yml` runs every 30 minutes on weekdays
    (13:00–23:30 UTC ≈ 8:00 AM–6:30 PM ET), on manual `workflow_dispatch`, and on pushes to `master`.
@@ -44,4 +62,4 @@ python3 scripts/fetch_markets.py   # writes data/markets.json
 python3 -m http.server 8000        # open http://localhost:8000
 ```
 
-v1.0
+v1.2

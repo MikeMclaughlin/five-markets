@@ -152,9 +152,74 @@
       frag.appendChild(card);
     });
     panelsEl.replaceChildren(frag);
+    renderOutlook(Object.fromEntries(ms.map((m) => [m.id, m])));
     panelsEl.querySelectorAll(".card").forEach((c, i) => drawChart(c.querySelector("svg"), ms[i], dom));
     drawAxis(dom);
     $("lastUpdated").textContent = etFmt.format(new Date(data.generatedAt)) + " ET";
+  }
+
+  // ---------- market outlook (rule-based, from the equity market's point of view) ----------
+  // sign: +1 means "bullish trend in this market is good for stocks", -1 means it is bad.
+  const RULES = {
+    stocks: { w: 2, sign: +1, label: "Stocks" },
+    tnx: { w: 1, sign: -1, label: "10Y Yield" },
+    bonds: { w: 1, sign: +1, label: "Bonds" },
+    dollar: { w: 1, sign: -1, label: "Dollar" },
+    gold: { w: 0.5, sign: -1, label: "Gold" },
+  };
+  const PHRASE = {
+    tnx: { bullish: "rising yields", bearish: "falling yields" },
+    bonds: { bullish: "rallying bonds", bearish: "falling bonds" },
+    dollar: { bullish: "a strong dollar", bearish: "a weakening dollar" },
+    gold: { bullish: "rising gold (a fear and inflation hedge)", bearish: "fading gold (less fear)" },
+  };
+  const LEVELS = [
+    { min: 3, cls: "lvl-strong-tail", name: "Strong Tailwind", phrase: "a strong tailwind" },
+    { min: 1, cls: "lvl-tail", name: "Tailwind", phrase: "a tailwind" },
+    { min: -0.5, cls: "lvl-neutral", name: "Neutral – Choppy", phrase: "a mixed, choppy backdrop" },
+    { min: -2.5, cls: "lvl-head", name: "Headwind", phrase: "a headwind" },
+    { min: -Infinity, cls: "lvl-strong-head", name: "Strong Headwind", phrase: "a strong headwind" },
+  ];
+  const listJoin = (a) => a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1];
+  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  const fmtScore = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toString();
+
+  function computeOutlook(byId) {
+    let total = 0; const chips = [], heads = [], tails = [];
+    Object.keys(RULES).forEach((id) => {
+      const m = byId[id], r = RULES[id];
+      if (!m) return;
+      const dir = m.trend === "bullish" ? 1 : m.trend === "bearish" ? -1 : 0;
+      const pts = dir * r.sign * r.w;
+      total += pts;
+      chips.push({ id, label: r.label, trend: m.trend, pts });
+      if (PHRASE[id] && dir) (pts > 0 ? tails : heads).push(PHRASE[id][m.trend]);
+    });
+    total = Math.round(total * 2) / 2;
+    const lvl = LEVELS.find((l) => total >= l.min);
+    const s = byId.stocks;
+    let s1;
+    if (!s) s1 = "Stock trend unavailable";
+    else if (s.trend === "bullish") s1 = "Stocks are in a confirmed uptrend, above a rising 150 SMA";
+    else if (s.trend === "bearish") s1 = "Stocks are in a confirmed downtrend, below a falling 150 SMA";
+    else if (s.above) s1 = "Stocks have climbed back above a still-falling 150 SMA, so their trend is undecided";
+    else s1 = "Stocks have slipped below a still-rising 150 SMA, so their trend is undecided";
+    let s2 = "";
+    if (heads.length) s2 = `${listJoin(heads)} ${heads.length > 1 ? "are" : "is"} tightening financial conditions`;
+    if (tails.length) s2 += (s2 ? ", while " : "") + `${listJoin(tails)} ${tails.length > 1 ? "are" : "is"} ${heads.length ? "easing them" : "easing financial conditions"}`;
+    if (!s2) s2 = "rates, the dollar and gold give no clear signal";
+    const text = `${s1}. ${cap(s2)} — net, ${lvl.phrase} for stocks ahead.`;
+    return { total, lvl, text, chips };
+  }
+
+  function renderOutlook(byId) {
+    const o = computeOutlook(byId), box = $("outlook");
+    box.className = "outlook " + o.lvl.cls;
+    $("olHeadline").textContent = o.lvl.name;
+    $("olScore").innerHTML = `Score <b>${fmtScore(o.total)}</b> of ±5.5`;
+    $("olText").textContent = o.text;
+    $("olChips").innerHTML = o.chips.map((c) =>
+      `<span class="chip ${c.pts > 0 ? "pos" : c.pts < 0 ? "neg" : "zero"}">${c.label} <span class="st">${c.id === "tnx" && c.trend !== "mixed" ? (c.trend === "bullish" ? "rising" : "falling") : c.trend}</span> <b>${fmtScore(c.pts)}</b></span>`).join("");
   }
 
   // ---------- data loading ----------

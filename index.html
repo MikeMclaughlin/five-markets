@@ -45,6 +45,26 @@
     <span class="status" id="status" aria-live="polite"></span>
   </section>
 
+  <section id="outlook" class="outlook lvl-loading" aria-live="polite">
+    <div class="ol-kicker">MARKET OUTLOOK · WHAT THE FIVE CHARTS SAY FOR STOCKS</div>
+    <div class="ol-head"><h2 id="olHeadline">Reading the five charts…</h2><div class="ol-score" id="olScore"></div></div>
+    <p class="ol-text" id="olText">&nbsp;</p>
+    <div class="ol-chips" id="olChips"></div>
+    <details class="ol-how">
+      <summary>How this is scored</summary>
+      <ul>
+        <li><b>Stocks</b> (S&amp;P 500 Equal Weight) — bullish +2, bearish −2 (the trend itself, double weight).</li>
+        <li><b>10-Year Yield</b> — rising/bullish −1 (higher rates tighten conditions), falling/bearish +1.</li>
+        <li><b>Bonds</b> — bullish +1, bearish −1 (mirrors yields).</li>
+        <li><b>US Dollar</b> — bullish −1 (strong dollar tightens global liquidity, hurts earnings), bearish +1.</li>
+        <li><b>Gold</b> — bullish −0.5 (fear / inflation hedging), bearish +0.5 (half weight: gold's signal is ambiguous).</li>
+        <li>Mixed (price and 150 SMA slope disagree) = 0. Bullish = price above a rising 150 SMA; bearish = price below a falling one.</li>
+        <li>Total range −5.5 to +5.5: <b>≥ +3</b> Strong Tailwind · <b>+1 to +2.5</b> Tailwind · <b>−0.5 to +0.5</b> Neutral–Choppy · <b>−1 to −2.5</b> Headwind · <b>≤ −3</b> Strong Headwind.</li>
+      </ul>
+    </details>
+    <div class="ol-foot">Rule-based trend read, not a forecast or investment advice.</div>
+  </section>
+
   <section id="panels" class="panels"></section>
   <div class="axis-row"><div class="axis-spacer"></div><div class="axis-wrap"><svg id="axis" class="axis"></svg></div></div>
 
@@ -56,7 +76,7 @@
   <footer>
     <span>Data: Yahoo Finance daily closes (^SPXEW, ^TNX, ZB=F, DX-Y.NYB, GC=F)</span>
     <span>Last updated: <b id="lastUpdated">—</b></span>
-    <span>v1.1</span>
+    <span>v1.2</span>
   </footer>
 </main>
 <script src="app.js"></script>
