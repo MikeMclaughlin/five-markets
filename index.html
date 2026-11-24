@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1226">
+<title>Five Markets, One Line.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <div class="titles">
+      <div class="kicker">DAILY · 150-DAY MOVING AVERAGE</div>
+      <h1>Five Markets, One Line<span class="gold">.</span></h1>
+    </div>
+    <div class="legend">
+      <span class="legend-swatch"></span>
+      <span>Sloping up, price above: <b>Bullish</b></span>
+    </div>
+  </header>
+
+  <section class="controls" aria-label="Update controls">
+    <label class="switch">
+      <input type="checkbox" id="autoToggle">
+      <span class="track"><span class="thumb"></span></span>
+      <span class="switch-label">Auto-update</span>
+    </label>
+    <label class="period">
+      <span>Every</span>
+      <select id="periodSelect">
+        <option value="1">1 min</option>
+        <option value="5">5 min</option>
+        <option value="15">15 min</option>
+        <option value="30">30 min</option>
+        <option value="60">60 min</option>
+        <option value="custom">Custom…</option>
+      </select>
+      <input type="number" id="customMinutes" min="1" max="1440" step="1" placeholder="min" hidden>
+    </label>
+    <button type="button" id="refreshBtn">Refresh now</button>
+    <span class="status" id="status" aria-live="polite"></span>
+  </section>
+
+  <section id="panels" class="panels"></section>
+  <div class="axis-row"><div class="axis-spacer"></div><div class="axis-wrap"><svg id="axis" class="axis"></svg></div></div>
+
+  <div class="key">
+    <span><i class="k-price"></i>Daily close (glow: green bullish · red bearish · amber mixed)</span>
+    <span><i class="k-sma"></i>150-day SMA</span>
+  </div>
+
+  <footer>
+    <span>Data: Yahoo Finance daily closes (^SPXEW, ^TNX, ZB=F, DX-Y.NYB, GC=F)</span>
+    <span>Last updated: <b id="lastUpdated">—</b></span>
+    <span>v1.0</span>
+  </footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
