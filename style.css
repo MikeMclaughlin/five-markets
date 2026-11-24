@@ -58,6 +58,8 @@ button:disabled{opacity:.6;cursor:progress}
 .sma-label{font-size:11px;fill:var(--sma);font-weight:600}
 .grid line{stroke:#22305a;stroke-width:1;stroke-dasharray:2 4}
 
+.card.p-above{background:linear-gradient(180deg,#0f2e22,#0b2219);border-color:rgba(46,230,160,.32)}
+.card.p-below{background:linear-gradient(180deg,#3a1426,#2a0f1c);border-color:rgba(255,77,106,.32)}
 .skeleton .info *,.skeleton .chart{opacity:.35}
 .shimmer{position:absolute;inset:18px 18px 18px 0;border-radius:10px;background:linear-gradient(90deg,#16224a 0,#1d2b58 50%,#16224a 100%);background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}

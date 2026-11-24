@@ -135,7 +135,7 @@
     const frag = document.createDocumentFragment();
     ms.forEach((m) => {
       const card = document.createElement("article");
-      card.className = "card";
+      card.className = "card " + (m.above ? "p-above" : "p-below");
       const pct = (m.pctFromSma > 0 ? "+" : "") + m.pctFromSma.toFixed(2) + "%";
       card.innerHTML = `
         <div class="info">

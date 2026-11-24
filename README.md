@@ -19,6 +19,7 @@ A one-page dashboard of five markets, each plotted as ~12 months of daily closes
   red = price below *and* SMA sloping down (bearish); amber = mixed. Slope = SMA today vs 10 trading days ago.
 - **Top-right pill** on each panel: "Above 150 SMA" / "Below 150 SMA" with % distance from the SMA.
   Last price and SMA value are shown under each market name.
+- **Panel shading** follows the pill: dark green background when price is above the 150 SMA, dark pink when below (updates with every data refresh).
 
 ## Market Outlook sign
 Above the panels, a **Market Outlook** card combines the five trend states into one rule-based read
@@ -62,4 +63,4 @@ python3 scripts/fetch_markets.py   # writes data/markets.json
 python3 -m http.server 8000        # open http://localhost:8000
 ```
 
-v1.2
+v1.3
