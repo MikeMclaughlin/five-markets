@@ -67,7 +67,12 @@ every data refresh. *Rule-based trend read, not a forecast or investment advice.
    - Toggle and period are saved in `localStorage`.
    - **Refresh now** fetches immediately.
    - During a refresh the current charts stay on screen; on an error a small note appears and the last good data is kept.
-   - "Last updated" is when the data file was generated, shown in ET (America/New_York).
+   - **"Data as of"** (controls bar and footer) is the `generatedAt` time the fetch job wrote into
+     `markets.json`, shown in ET — not when the page was loaded. A small secondary "checked" time shows the last browser fetch.
+   - **Staleness**: during the regular session (Mon–Fri 9:30 AM–4:00 PM ET) data older than 45 minutes is tagged
+     **STALE** (amber; red when more than 2 hours past that). Outside the session, data is only flagged if nothing was
+     fetched since the most recent 4:00 PM ET close (after a 45-minute grace). Exchange holidays are not modeled.
+     A panel whose last daily bar lags the other markets and the expected session date gets a small "Last bar" note.
 
 Note: the page can only be as fresh as the data file, which the workflow refreshes every 30 minutes
 on weekdays (GitHub may delay scheduled runs by a few minutes). Run the workflow manually from the
@@ -79,4 +84,4 @@ python3 scripts/fetch_markets.py   # writes data/markets.json
 python3 -m http.server 8000        # open http://localhost:8000
 ```
 
-v1.4
+v1.5

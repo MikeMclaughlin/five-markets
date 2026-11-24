@@ -34,7 +34,12 @@ input[type=number]{width:76px}
 button{cursor:pointer;font-weight:500}
 button:hover{border-color:var(--gold)}
 button:disabled{opacity:.6;cursor:progress}
-.status{font-size:12.5px;margin-left:auto}
+.asof{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
+.asof.stale{color:#ffb547}
+.asof.severe{color:#ff5c77}
+.stale-tag{font-size:10.5px;font-weight:700;letter-spacing:.12em;padding:2px 7px;border-radius:999px;border:1.5px solid currentColor;background:rgba(11,18,38,.6)}
+.status{font-size:11.5px;opacity:.8}
+.lag{display:inline-block;margin-top:6px;font-size:11.5px;color:#ffb547;border:1px solid rgba(255,181,71,.5);border-radius:999px;padding:1px 8px;width:max-content}
 .status.err{color:#ffb3bf}
 
 .panels{display:flex;flex-direction:column;gap:12px}
@@ -129,6 +134,7 @@ footer span:last-child{margin-left:auto}
   .axis-spacer{display:none}
   .axis-wrap{padding:0 10px 0 4px}
   .axis text{font-size:10.5px}
+  .asof{margin-left:0;width:100%}
   .status{margin-left:0;width:100%}
   footer span:last-child{margin-left:0}
   .legend{padding:6px 12px}
