@@ -69,9 +69,9 @@ every data refresh. *Rule-based trend read, not a forecast or investment advice.
    - During a refresh the current charts stay on screen; on an error a small note appears and the last good data is kept.
    - **"Data as of"** (controls bar and footer) is the `generatedAt` time the fetch job wrote into
      `markets.json`, shown in ET — not when the page was loaded. A small secondary "checked" time shows the last browser fetch.
-   - **Staleness**: during the regular session (Mon–Fri 9:30 AM–4:00 PM ET) data older than 45 minutes is tagged
+   - **Staleness**: during the regular session (Mon–Fri 9:30 AM–4:00 PM ET) data older than 4.5 hours is tagged
      **STALE** (amber; red when more than 2 hours past that). Outside the session, data is only flagged if nothing was
-     fetched since the most recent 4:00 PM ET close (after a 45-minute grace). Exchange holidays are not modeled.
+     fetched since the most recent 4:00 PM ET close (after a 4.5-hour grace). Exchange holidays are not modeled.
      A panel whose last daily bar lags the other markets and the expected session date gets a small "Last bar" note.
 
 Note: the page can only be as fresh as the data file, which the workflow refreshes every 30 minutes
