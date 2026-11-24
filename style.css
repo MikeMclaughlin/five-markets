@@ -1,6 +1,6 @@
 :root{
   --bg:#0b1226; --panel:#111a33; --panel-2:#142041; --line:#1e2b4f;
-  --text:#f3f5fb; --muted:#8a95b3; --gold:#f2b731; --green:#2ee6a0; --red:#ff4d6a; --amber:#e8b04a;
+  --text:#f3f5fb; --muted:#8a95b3; --gold:#f2b731; --green:#2ee6a0; --red:#ff4d6a; --amber:#ff8a2b; --sma:#ffe600;
   --serif:"Playfair Display",Georgia,"Times New Roman",serif;
   --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 }
@@ -45,7 +45,7 @@ button:disabled{opacity:.6;cursor:progress}
 .sub{color:var(--muted);font-size:13px}
 .vals{margin-top:10px;font-size:12.5px;color:var(--muted);display:grid;grid-template-columns:auto 1fr;gap:1px 8px}
 .vals b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
-.vals .s{color:var(--gold)}
+.vals .s{color:var(--sma)}
 .chart{position:relative;min-width:0;padding:10px 14px 8px 0}
 .chart svg{display:block;width:100%;height:100%;min-height:156px;overflow:visible}
 .pill{position:absolute;top:10px;right:14px;z-index:2;font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;
@@ -55,7 +55,7 @@ button:disabled{opacity:.6;cursor:progress}
 .pill .pct{opacity:.85;font-weight:500;margin-left:4px}
 .trend{position:absolute;top:40px;right:14px;z-index:2;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .trend.bullish{color:var(--green)} .trend.bearish{color:var(--red)} .trend.mixed{color:var(--amber)}
-.sma-label{font-size:11px;fill:var(--gold);font-weight:600}
+.sma-label{font-size:11px;fill:var(--sma);font-weight:600}
 .grid line{stroke:#22305a;stroke-width:1;stroke-dasharray:2 4}
 
 .skeleton .info *,.skeleton .chart{opacity:.35}
@@ -69,7 +69,7 @@ button:disabled{opacity:.6;cursor:progress}
 .key{display:flex;flex-wrap:wrap;gap:8px 22px;margin:12px 0 0;color:var(--muted);font-size:12.5px}
 .key i{display:inline-block;width:22px;height:3px;border-radius:3px;margin-right:8px;vertical-align:middle}
 .k-price{background:var(--green);box-shadow:0 0 6px var(--green)}
-.k-sma{background:var(--gold);height:4px!important}
+.k-sma{background:var(--sma);height:4px!important;box-shadow:0 0 6px rgba(255,230,0,.6)}
 footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px 24px;color:var(--muted);font-size:12.5px}
 footer b{color:var(--text);font-weight:500}
 footer span:last-child{margin-left:auto}

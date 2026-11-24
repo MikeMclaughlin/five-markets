@@ -6,7 +6,7 @@
   const PLACEHOLDER = [
     ["Stocks", "S&P 500 Equal Weight"], ["10-Year Yield", "US Treasury yield"],
     ["Bonds", "30-Year Treasury bond futures"], ["US Dollar", "Dollar index"], ["Gold", "Gold futures"]];
-  const COLORS = { bullish: "#2ee6a0", bearish: "#ff4d6a", mixed: "#e8b04a" };
+  const COLORS = { bullish: "#2ee6a0", bearish: "#ff4d6a", mixed: "#ff8a2b" };
   const NS = "http://www.w3.org/2000/svg";
 
   const $ = (id) => document.getElementById(id);
@@ -99,8 +99,8 @@
 
     const smaPts = ts.map((t, i) => [x(t), y(m.sma150[i])]);
     const sd = smoothPath(smaPts);
-    el("path", { d: sd, fill: "none", stroke: "#f2b731", "stroke-width": 7, opacity: 0.25, filter: `url(#${fid})` }, svg);
-    el("path", { d: sd, fill: "none", stroke: "#f5a524", "stroke-width": 3.4, "stroke-linecap": "round" }, svg);
+    el("path", { d: sd, fill: "none", stroke: "#ffe600", "stroke-width": 7, opacity: 0.35, filter: `url(#${fid})` }, svg);
+    el("path", { d: sd, fill: "none", stroke: "#ffe600", "stroke-width": 3.4, "stroke-linecap": "round" }, svg);
 
     // label the gold line
     const lp = smaPts[Math.floor(smaPts.length * 0.06)];
