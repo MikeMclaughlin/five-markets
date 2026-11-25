@@ -73,6 +73,24 @@ button:disabled{opacity:.6;cursor:progress}
 .dv-title{fill:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-weight:600}
 .dv-val{fill:var(--text);font-weight:700;font-variant-numeric:tabular-nums}
 .dv-note{fill:var(--muted)}
+.seg{display:inline-flex;border:1px solid #2a3966;border-radius:9px;overflow:hidden;background:var(--panel-2)}
+.seg button{border:0;border-radius:0;background:transparent;color:var(--muted);padding:6px 12px;font-weight:500}
+.seg button+button{border-left:1px solid #2a3966}
+.seg button[aria-pressed="true"]{background:rgba(255,230,0,.12);color:var(--text);box-shadow:inset 0 -2px 0 var(--sma)}
+.seg button:hover{color:var(--text)}
+.pct-up{fill:rgba(46,230,160,.85)}
+.pct-down{fill:rgba(255,77,106,.9)}
+.pct-zero{stroke:var(--sma);stroke-width:1.5}
+.pct-zero-label{font-size:10.5px;fill:var(--sma);font-weight:600}
+.pct-grid{stroke:rgba(255,255,255,.07);stroke-width:1}
+.pct-tick{font-size:10.5px;fill:var(--muted);font-variant-numeric:tabular-nums}
+.pct-guide{stroke:rgba(235,240,255,.55);stroke-width:1;stroke-dasharray:3 3}
+.chart svg{touch-action:pan-y}
+.tip{position:absolute;z-index:5;pointer-events:none;display:flex;gap:8px;align-items:baseline;white-space:nowrap;font-size:12px;
+  padding:5px 9px;border-radius:8px;background:rgba(11,18,38,.92);border:1px solid #2a3966;color:var(--muted);box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.tip b{font-variant-numeric:tabular-nums}.tip b.up{color:var(--green)}.tip b.down{color:var(--red)}
+.k-pct{background:linear-gradient(90deg,rgba(46,230,160,.85) 50%,rgba(255,77,106,.9) 50%);height:8px!important;width:14px!important}
+body:not(.view-pct) .k-view-pct,body.view-pct .k-view-price{display:none}
 .skeleton .info *,.skeleton .chart{opacity:.35}
 .shimmer{position:absolute;inset:18px 18px 18px 0;border-radius:10px;background:linear-gradient(90deg,#16224a 0,#1d2b58 50%,#16224a 100%);background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}

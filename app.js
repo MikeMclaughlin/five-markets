@@ -1,7 +1,9 @@
 (() => {
   "use strict";
   const DATA_URL = "data/markets.json";
-  const LS_ON = "fm.autoUpdate", LS_PERIOD = "fm.period", LS_CUSTOM = "fm.customMinutes";
+  const LS_ON = "fm.autoUpdate", LS_PERIOD = "fm.period", LS_CUSTOM = "fm.customMinutes", LS_VIEW = "fm.view";
+  let VIEW = "price";
+  try { if (localStorage.getItem(LS_VIEW) === "pct") VIEW = "pct"; } catch (_) {}
   const ORDER = ["stocks", "qqq", "tnx", "bonds", "dollar", "gold"];
   const PLACEHOLDER = [
     ["Stocks", "S&P 500 Equal Weight"], ["QQQ", "Invesco QQQ (Nasdaq-100)"], ["10-Year Yield", "US Treasury yield"],
@@ -32,10 +34,27 @@
   }
 
   // ---------- chart drawing ----------
+  // Shared trading-day axis (v1.9): the union of all panels' trading dates, one slot per day,
+  // so weekends never take space and price line, % bars, volume bars and month labels all align.
   function domain(markets) {
-    let lo = Infinity, hi = -Infinity;
-    markets.forEach((m) => { lo = Math.min(lo, toT(m.dates[0])); hi = Math.max(hi, toT(m.dates[m.dates.length - 1])); });
-    return [lo, hi];
+    const set = new Set();
+    markets.forEach((m) => m.dates.forEach((d) => set.add(toT(d))));
+    const ts = [...set].sort((a, b) => a - b);
+    return { ts, N: ts.length };
+  }
+  function xScale(dom, W) {
+    const a = dom.ts, N = Math.max(dom.N, 1);
+    return (t) => {
+      let pos;
+      if (t <= a[0]) pos = 0;
+      else if (t >= a[N - 1]) pos = N - 1;
+      else {
+        let lo = 0, hi = N - 1;
+        while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (a[mid] <= t) lo = mid; else hi = mid; }
+        pos = a[lo] === t ? lo : lo + (t - a[lo]) / (a[hi] - a[lo]);
+      }
+      return ((pos + 0.5) / N) * W;
+    };
   }
 
   function el(name, attrs, parent) {
@@ -58,16 +77,12 @@
     return d;
   }
 
-  function monthTicks(t0, t1) {
-    const out = []; const d = new Date(t0);
-    let y = d.getUTCFullYear(), m = d.getUTCMonth() + 1;
-    if (m % 2 === 1) m++; // Jan, Mar, May, Jul, Sep, Nov
-    for (;;) {
-      if (m > 11) { y += Math.floor(m / 12); m = m % 12; }
-      const t = Date.UTC(y, m, 1);
-      if (t > t1) break;
-      out.push(t); m += 2;
-    }
+  function monthTicks(dom) { // first trading day of Jan, Mar, May, Jul, Sep, Nov
+    const out = [];
+    dom.ts.forEach((t, i) => {
+      const mo = new Date(t).getUTCMonth();
+      if (i > 0 && mo !== new Date(dom.ts[i - 1]).getUTCMonth() && mo % 2 === 0) out.push(t);
+    });
     return out;
   }
 
@@ -82,8 +97,9 @@
     const vals = m.close.concat(m.sma150);
     let lo = Math.min(...vals), hi = Math.max(...vals);
     const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
-    const x = (t) => ((t - dom[0]) / (dom[1] - dom[0])) * W;
+    const x = xScale(dom, W);
     const y = (v) => top + (1 - (v - lo) / (hi - lo)) * (H - top - bot);
+    if (VIEW === "pct") return drawPct(svg, m, dom, x, W, H, top, bot, STRIP);
     const color = COLORS[m.trend] || COLORS.mixed;
     const fid = "glow-" + m.id;
     const defs = el("defs", {}, svg);
@@ -91,7 +107,7 @@
     el("feGaussianBlur", { stdDeviation: "4" }, f);
 
     const g = el("g", { class: "grid" }, svg);
-    monthTicks(dom[0], dom[1]).forEach((t) => el("line", { x1: x(t), x2: x(t), y1: 0, y2: H }, g));
+    monthTicks(dom).forEach((t) => el("line", { x1: x(t), x2: x(t), y1: 0, y2: H }, g));
 
     const ts = m.dates.map(toT);
     const pricePts = ts.map((t, i) => [x(t), y(m.close[i])]);
@@ -115,6 +131,70 @@
     drawVolume(svg, m.volume, x, H - STRIP, STRIP, W);
   }
 
+  // ---------- % from 150 SMA histogram (v1.9) ----------
+  function niceStep(range) {
+    const raw = range / 5, p = Math.pow(10, Math.floor(Math.log10(raw || 1)));
+    const f = raw / p;
+    return (f <= 1.5 ? 1 : f <= 3 ? 2 : f <= 7 ? 5 : 10) * p;
+  }
+  function drawPct(svg, m, dom, x, W, H, top, bot, STRIP) {
+    const pct = m.close.map((c, i) => (c / m.sma150[i] - 1) * 100);
+    let lo = Math.min(0, ...pct), hi = Math.max(0, ...pct);
+    const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+    const y = (v) => top + (1 - (v - lo) / (hi - lo)) * (H - top - bot);
+    const g = el("g", { class: "grid" }, svg);
+    monthTicks(dom).forEach((t) => el("line", { x1: x(t), x2: x(t), y1: 0, y2: H }, g));
+    const step = niceStep(hi - lo);
+    const yl = el("g", { class: "pct-axis" }, svg);
+    for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
+      if (Math.abs(v) < 1e-9) continue;
+      el("line", { x1: 0, x2: W, y1: y(v), y2: y(v), class: "pct-grid" }, yl);
+      const tx = el("text", { x: 3, y: y(v) - 3, class: "pct-tick" }, yl);
+      tx.textContent = (v > 0 ? "+" : "−") + (+Math.abs(v).toFixed(2)) + "%";
+    }
+    const ts = m.dates.map(toT);
+    const bw = Math.max(1, (W / dom.N) * 0.86), y0 = y(0);
+    const bars = el("g", { class: "pct-bars" }, svg);
+    pct.forEach((v, i) => {
+      const yy = y(v), h = Math.max(0.8, Math.abs(yy - y0));
+      el("rect", { x: (x(ts[i]) - bw / 2).toFixed(1), y: (v >= 0 ? y0 - h : y0).toFixed(1), width: bw.toFixed(1), height: h.toFixed(1),
+        class: v >= 0 ? "pct-up" : "pct-down" }, bars);
+    });
+    el("line", { x1: 0, x2: W, y1: y0, y2: y0, class: "pct-zero" }, svg);
+    const zl = el("text", { x: 3, y: y0 + (y0 > H - bot - 14 ? -5 : 13), class: "pct-zero-label" }, svg);
+    zl.textContent = "0% = 150 SMA";
+    // hover / tap tooltip: date and %
+    const guide = el("line", { x1: 0, x2: 0, y1: top - 6, y2: H - bot, class: "pct-guide", visibility: "hidden" }, svg);
+    const xs = ts.map((t) => x(t));
+    const wrap = svg.parentNode;
+    let tip = wrap.querySelector(".tip");
+    if (!tip) { tip = document.createElement("div"); tip.className = "tip"; wrap.appendChild(tip); }
+    tip.hidden = true;
+    const show = (ev) => {
+      const r = svg.getBoundingClientRect();
+      const px = ((ev.clientX - r.left) / r.width) * W;
+      let lo2 = 0, hi2 = xs.length - 1;
+      while (hi2 - lo2 > 1) { const mid = (lo2 + hi2) >> 1; if (xs[mid] <= px) lo2 = mid; else hi2 = mid; }
+      const i = Math.abs(xs[lo2] - px) <= Math.abs(xs[hi2] - px) ? lo2 : hi2;
+      guide.setAttribute("x1", xs[i]); guide.setAttribute("x2", xs[i]); guide.setAttribute("visibility", "visible");
+      const v = pct[i];
+      tip.innerHTML = `<span>${esc(new Date(ts[i]).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }))}</span>` +
+        `<b class="${v >= 0 ? "up" : "down"}">${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}%</b>`;
+      tip.hidden = false;
+      const pr = (tip.offsetParent || wrap).getBoundingClientRect();
+      const left = r.left - pr.left + (xs[i] / W) * r.width;
+      const tw = tip.offsetWidth;
+      tip.style.left = Math.min(Math.max(left - tw / 2, 4), pr.width - tw - 4) + "px";
+      tip.style.top = (r.top - pr.top + (Math.min(y(v), y0) / H) * r.height - tip.offsetHeight - 8) + "px";
+    };
+    let hideTimer = null;
+    const hide = () => { guide.setAttribute("visibility", "hidden"); tip.hidden = true; };
+    svg.addEventListener("pointermove", (ev) => { if (ev.pointerType === "mouse") show(ev); });
+    svg.addEventListener("pointerdown", (ev) => { show(ev); clearTimeout(hideTimer); if (ev.pointerType !== "mouse") hideTimer = setTimeout(hide, 3500); });
+    svg.addEventListener("pointerleave", (ev) => { if (ev.pointerType === "mouse") hide(); });
+    drawVolume(svg, m.volume, x, H - STRIP, STRIP, W);
+  }
+
   // ---------- dollar volume strip ----------
   function fmtUsd(v) {
     const a = Math.abs(v);
@@ -134,7 +214,7 @@
     }
     const ts = vol.dates.map(toT);
     const max = Math.max(...vol.dv, ...vol.avg50.filter((v) => v != null)) || 1;
-    const bw = Math.max(1, (W / Math.max(ts.length, 1)) * 0.72);
+    const bw = Math.max(1, (W / Math.max(ts.length, 1)) * 0.72); // ~one slot per trading day
     const yb = y0 + h;
     vol.dv.forEach((v, i) => {
       if (!(v > 0)) return;
@@ -158,11 +238,11 @@
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     svg.innerHTML = "";
     const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const ticks = monthTicks(dom[0], dom[1]);
-    const W0 = ((ticks[0] - dom[0]) / (dom[1] - dom[0])) * W;
-    if (W0 > 40) { const s0 = el("text", { x: 0, y: 16, "text-anchor": "start" }, svg); s0.textContent = names[new Date(dom[0]).getUTCMonth()]; }
+    const ticks = monthTicks(dom), x = xScale(dom, W);
+    const W0 = ticks.length ? x(ticks[0]) : W;
+    if (W0 > 40) { const s0 = el("text", { x: 0, y: 16, "text-anchor": "start" }, svg); s0.textContent = names[new Date(dom.ts[0]).getUTCMonth()]; }
     ticks.forEach((t) => {
-      const xx = ((t - dom[0]) / (dom[1] - dom[0])) * W;
+      const xx = x(t);
       const tx = el("text", { x: xx, y: 16, "text-anchor": xx < 14 ? "start" : xx > W - 14 ? "end" : "middle" }, svg);
       tx.textContent = names[new Date(t).getUTCMonth()];
     });
@@ -417,6 +497,20 @@
   custom.addEventListener("change", () => { save(); schedule(); });
   btn.addEventListener("click", () => load());
   let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(render, 120); });
+
+  // chart view toggle (Price / % from SMA); re-render swaps fully built panels, so nothing blanks
+  const viewBtns = [...document.querySelectorAll(".seg button[data-view]")];
+  function syncView() {
+    viewBtns.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === VIEW)));
+    document.body.classList.toggle("view-pct", VIEW === "pct");
+  }
+  viewBtns.forEach((b) => b.addEventListener("click", () => {
+    if (VIEW === b.dataset.view) return;
+    VIEW = b.dataset.view;
+    try { localStorage.setItem(LS_VIEW, VIEW); } catch (_) {}
+    syncView(); render();
+  }));
+  syncView();
 
   renderSkeleton();
   load().then(schedule);

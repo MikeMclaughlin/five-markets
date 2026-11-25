@@ -22,6 +22,14 @@ A one-page dashboard of six markets, each plotted as ~12 months of daily closes 
   Last price and SMA value are shown under each market name.
 - **Panel shading** follows the pill: dark green background when price is above the 150 SMA, dark pink when below (updates with every data refresh).
 
+## Chart view: Price / % from SMA (v1.9)
+A segmented control in the controls bar switches all six panels between **Price** (daily close with the
+yellow 150 SMA) and **% from SMA**: one bar per trading day of (close / 150 SMA − 1) × 100, green above
+zero and red below, with a yellow 0% baseline (= the 150 SMA) and ±% gridlines. Hover or tap a bar for its
+date and %. The choice is saved in `localStorage` (default Price). Pills, Dollar Volume, lag notes and the
+Outlook card are the same in both views. All panels share one trading-day x-axis (the union of the
+markets' trading dates), so weekends take no space and every chart, bar strip and month label lines up.
+
 ## Dollar Volume strip (v1.4)
 The bottom of each panel shows daily **dollar volume** bars (green = up day, red = down day) on the same
 time axis, with a thin 50-day average line and the latest value. Only real traded volume is used:
@@ -98,4 +106,4 @@ python3 scripts/fetch_markets.py   # writes data/markets.json
 python3 -m http.server 8000        # open http://localhost:8000
 ```
 
-v1.8
+v1.9
