@@ -2,10 +2,11 @@
   "use strict";
   const DATA_URL = "data/markets.json";
   const LS_ON = "fm.autoUpdate", LS_PERIOD = "fm.period", LS_CUSTOM = "fm.customMinutes";
-  const ORDER = ["stocks", "tnx", "bonds", "dollar", "gold"];
+  const ORDER = ["stocks", "tnx", "bonds", "dollar", "gold", "qqq"];
   const PLACEHOLDER = [
     ["Stocks", "S&P 500 Equal Weight"], ["10-Year Yield", "US Treasury yield"],
-    ["Bonds", "30-Year Treasury bond futures"], ["US Dollar", "Dollar index"], ["Gold", "Gold futures"]];
+    ["Bonds", "30-Year Treasury bond futures"], ["US Dollar", "Dollar index"], ["Gold", "Gold futures"],
+    ["QQQ", "Invesco QQQ (Nasdaq-100)"]];
   const COLORS = { bullish: "#2ee6a0", bearish: "#ff4d6a", mixed: "#ff8a2b" };
   const NS = "http://www.w3.org/2000/svg";
 
@@ -13,7 +14,7 @@
   const panelsEl = $("panels"), statusEl = $("status"), toggle = $("autoToggle"),
         sel = $("periodSelect"), custom = $("customMinutes"), btn = $("refreshBtn");
 
-  let data = null, timer = null, inflight = null, nextAt = null;
+  let data = null, timer = null, inflight = null;
 
   // ---------- formatting ----------
   const etFmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", month: "short", day: "numeric",
@@ -178,7 +179,8 @@
     ms.forEach((m) => {
       const card = document.createElement("article");
       card.className = "card " + (m.above ? "p-above" : "p-below");
-      const pct = (m.pctFromSma > 0 ? "+" : "") + m.pctFromSma.toFixed(2) + "%";
+      const pv = (m.last / m.smaLast - 1) * 100;
+      const pct = (pv >= 0 ? "+" : "−") + Math.abs(pv).toFixed(1) + "%";
       card.innerHTML = `
         <div class="info">
           <div class="name">${esc(m.name)}</div>
@@ -270,6 +272,7 @@
     bonds: { w: 1, sign: +1, label: "Bonds" },
     dollar: { w: 1, sign: -1, label: "Dollar" },
     gold: { w: 0.5, sign: -1, label: "Gold" },
+    qqq: { w: 1, sign: +1, label: "QQQ" },
   };
   const PHRASE = {
     tnx: { bullish: "rising yields", bearish: "falling yields" },
@@ -278,10 +281,10 @@
     gold: { bullish: "rising gold (a fear and inflation hedge)", bearish: "fading gold (less fear)" },
   };
   const LEVELS = [
-    { min: 3, cls: "lvl-strong-tail", name: "Strong Tailwind", phrase: "a strong tailwind" },
+    { min: 3.5, cls: "lvl-strong-tail", name: "Strong Tailwind", phrase: "a strong tailwind" },
     { min: 1, cls: "lvl-tail", name: "Tailwind", phrase: "a tailwind" },
     { min: -0.5, cls: "lvl-neutral", name: "Neutral – Choppy", phrase: "a mixed, choppy backdrop" },
-    { min: -2.5, cls: "lvl-head", name: "Headwind", phrase: "a headwind" },
+    { min: -3, cls: "lvl-head", name: "Headwind", phrase: "a headwind" },
     { min: -Infinity, cls: "lvl-strong-head", name: "Strong Headwind", phrase: "a strong headwind" },
   ];
   const listJoin = (a) => a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1];
@@ -308,6 +311,10 @@
     else if (s.trend === "bearish") s1 = "Stocks are in a confirmed downtrend, below a falling 150 SMA";
     else if (s.above) s1 = "Stocks have climbed back above a still-falling 150 SMA, so their trend is undecided";
     else s1 = "Stocks have slipped below a still-rising 150 SMA, so their trend is undecided";
+    const q = byId.qqq;
+    if (q) s1 += q.trend === "bullish" ? "; QQQ (Nasdaq-100) is above a rising 150 SMA"
+      : q.trend === "bearish" ? "; QQQ (Nasdaq-100) is below a falling 150 SMA"
+      : `; QQQ (Nasdaq-100) is mixed, ${q.above ? "above a falling" : "below a rising"} 150 SMA`;
     let s2 = "";
     if (heads.length) s2 = `${listJoin(heads)} ${heads.length > 1 ? "are" : "is"} tightening financial conditions`;
     if (tails.length) s2 += (s2 ? ", while " : "") + `${listJoin(tails)} ${tails.length > 1 ? "are" : "is"} ${heads.length ? "easing them" : "easing financial conditions"}`;
@@ -320,7 +327,7 @@
     const o = computeOutlook(byId), box = $("outlook");
     box.className = "outlook " + o.lvl.cls;
     $("olHeadline").textContent = o.lvl.name;
-    $("olScore").innerHTML = `Score <b>${fmtScore(o.total)}</b> of ±5.5`;
+    $("olScore").innerHTML = `Score <b>${fmtScore(o.total)}</b> of ±6.5`;
     $("olText").textContent = o.text;
     $("olChips").innerHTML = o.chips.map((c) =>
       `<span class="chip ${c.pts > 0 ? "pos" : c.pts < 0 ? "neg" : "zero"}">${c.label} <span class="st">${c.id === "tnx" && c.trend !== "mixed" ? (c.trend === "bullish" ? "rising" : "falling") : c.trend}</span> <b>${fmtScore(c.pts)}</b></span>`).join("");
@@ -355,16 +362,12 @@
     }
     return +sel.value;
   }
-  function statusText() {
-    const now = "checked " + etTime.format(new Date()) + " ET";
-    return toggle.checked && nextAt ? `${now} · next ${etTime.format(nextAt)} ET` : now;
-  }
+  function statusText() { return ""; } // v1.7: no page-check or next-update time shown; only "Data as of"
   function schedule() {
-    clearInterval(timer); timer = null; nextAt = null;
+    clearInterval(timer); timer = null;
     if (toggle.checked) {
       const ms = periodMinutes() * 60000;
-      nextAt = new Date(Date.now() + ms);
-      timer = setInterval(() => { nextAt = new Date(Date.now() + ms); load(); }, ms);
+      timer = setInterval(load, ms);
     }
     if (data) setStatus(statusText());
   }

@@ -2,7 +2,7 @@
 
 Live page: **https://mikemclaughlin.github.io/five-markets/**
 
-A one-page dashboard of five markets, each plotted as ~12 months of daily closes with its
+A one-page dashboard of six markets, each plotted as ~12 months of daily closes with its
 **150-day simple moving average** (the yellow line).
 
 | Panel | Market | Ticker (Yahoo Finance) |
@@ -12,9 +12,10 @@ A one-page dashboard of five markets, each plotted as ~12 months of daily closes
 | Bonds | 30-Year Treasury bond futures | `ZB=F` |
 | US Dollar | US Dollar Index | `DX-Y.NYB` |
 | Gold | Gold futures | `GC=F` |
+| QQQ | Invesco QQQ (Nasdaq-100 ETF) | `QQQ` |
 
 ## Reading it
-- **Gold line** = 150-day SMA, computed from ~2 years of history so it covers the full visible window.
+- **Yellow line** = 150-day SMA, computed from ~2 years of history so it covers the full visible window.
 - **Price-line glow**: green = price above the SMA *and* the SMA sloping up (bullish);
   red = price below *and* SMA sloping down (bearish); amber = mixed. Slope = SMA today vs 10 trading days ago.
 - **Top-right pill** on each panel: "Above 150 SMA" / "Below 150 SMA" with % distance from the SMA.
@@ -32,6 +33,7 @@ time axis, with a thin 50-day average line and the latest value. Only real trade
 | Bonds | ZB=F contracts × price × 1,000 | TLT |
 | US Dollar | DX=F contracts × price × 1,000 | UUP |
 | Gold | GC=F contracts × price × 100 | GLD |
+| QQQ | QQQ shares × price | — |
 
 A futures series is skipped for its ETF fallback if Yahoo returns no data or more than 10% empty
 days. If nothing is available the strip says "No volume data". Futures bars for the current day are
@@ -48,9 +50,10 @@ for stocks (intermarket logic, scored from the equity market's point of view):
 | Bonds | +1 | −1 | mirrors yields |
 | US Dollar | −1 | +1 | a strong dollar tightens global liquidity and hurts earnings |
 | Gold | −0.5 | +0.5 | fear / inflation hedging; half weight because the signal is ambiguous |
+| QQQ (Nasdaq-100) | +1 | −1 | risk-on growth confirmation; single weight |
 
-Mixed = 0. Total ranges −5.5 to +5.5 and maps to: **≥ +3** Strong Tailwind · **+1 to +2.5** Tailwind ·
-**−0.5 to +0.5** Neutral–Choppy · **−1 to −2.5** Headwind · **≤ −3** Strong Headwind.
+Mixed = 0. Total ranges −6.5 to +6.5 and maps to: **≥ +3.5** Strong Tailwind · **+1 to +3** Tailwind ·
+**−0.5 to +0.5** Neutral–Choppy · **−1 to −3** Headwind · **≤ −3.5** Strong Headwind.
 The card shows the headline, a plain-English sentence built from the actual combination, per-market
 contribution chips and an expandable "How this is scored" note. It is recomputed in the browser on
 every data refresh. *Rule-based trend read, not a forecast or investment advice.*
@@ -68,7 +71,7 @@ every data refresh. *Rule-based trend read, not a forecast or investment advice.
    - **Refresh now** fetches immediately.
    - During a refresh the current charts stay on screen; on an error a small note appears and the last good data is kept.
    - **"Data as of"** (controls bar and footer) is the `generatedAt` time the fetch job wrote into
-     `markets.json`, shown in ET — not when the page was loaded. A small secondary "checked" time shows the last browser fetch.
+     `markets.json`, shown in ET — not when the page was loaded. No page-load or next-update time is shown.
    - **Staleness**: during the regular session (Mon–Fri 9:30 AM–4:00 PM ET) data older than 4.5 hours is tagged
      **STALE** (amber; red when more than 2 hours past that). Outside the session, data is only flagged if nothing was
      fetched since the most recent 4:00 PM ET close (after a 4.5-hour grace). Exchange holidays are not modeled.
@@ -84,4 +87,4 @@ python3 scripts/fetch_markets.py   # writes data/markets.json
 python3 -m http.server 8000        # open http://localhost:8000
 ```
 
-v1.5
+v1.7

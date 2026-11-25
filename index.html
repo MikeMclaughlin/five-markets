@@ -47,7 +47,7 @@
   </section>
 
   <section id="outlook" class="outlook lvl-loading" aria-live="polite">
-    <div class="ol-kicker">MARKET OUTLOOK · WHAT THE FIVE CHARTS SAY FOR STOCKS</div>
+    <div class="ol-kicker">MARKET OUTLOOK · WHAT THE SIX CHARTS SAY FOR STOCKS</div>
     <div class="ol-head"><h2 id="olHeadline">Reading the five charts…</h2><div class="ol-score" id="olScore"></div></div>
     <p class="ol-text" id="olText">&nbsp;</p>
     <div class="ol-chips" id="olChips"></div>
@@ -59,8 +59,9 @@
         <li><b>Bonds</b> — bullish +1, bearish −1 (mirrors yields).</li>
         <li><b>US Dollar</b> — bullish −1 (strong dollar tightens global liquidity, hurts earnings), bearish +1.</li>
         <li><b>Gold</b> — bullish −0.5 (fear / inflation hedging), bearish +0.5 (half weight: gold's signal is ambiguous).</li>
+        <li><b>QQQ</b> (Nasdaq-100) — bullish +1, bearish −1 (risk-on growth confirmation; single weight so it doesn't overpower the equal-weight Stocks read).</li>
         <li>Mixed (price and 150 SMA slope disagree) = 0. Bullish = price above a rising 150 SMA; bearish = price below a falling one.</li>
-        <li>Total range −5.5 to +5.5: <b>≥ +3</b> Strong Tailwind · <b>+1 to +2.5</b> Tailwind · <b>−0.5 to +0.5</b> Neutral–Choppy · <b>−1 to −2.5</b> Headwind · <b>≤ −3</b> Strong Headwind.</li>
+        <li>Total range −6.5 to +6.5: <b>≥ +3.5</b> Strong Tailwind · <b>+1 to +3</b> Tailwind · <b>−0.5 to +0.5</b> Neutral–Choppy · <b>−1 to −3</b> Headwind · <b>≤ −3.5</b> Strong Headwind.</li>
       </ul>
     </details>
     <div class="ol-foot">Rule-based trend read, not a forecast or investment advice.</div>
@@ -76,9 +77,9 @@
   </div>
 
   <footer>
-    <span>Data: Yahoo Finance daily closes (^SPXEW, ^TNX, ZB=F, DX-Y.NYB, GC=F)</span>
+    <span>Data: Yahoo Finance daily closes (^SPXEW, ^TNX, ZB=F, DX-Y.NYB, GC=F, QQQ)</span>
     <span>Data as of: <b id="lastUpdated">—</b></span>
-    <span>v1.6</span>
+    <span>v1.7</span>
   </footer>
 </main>
 <script src="app.js"></script>

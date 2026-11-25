@@ -18,6 +18,7 @@ MARKETS = [
     {"id": "bonds", "name": "Bonds", "subtitle": "30-Year Treasury bond futures", "symbol": "ZB=F", "decimals": 3, "unit": ""},
     {"id": "dollar", "name": "US Dollar", "subtitle": "Dollar index", "symbol": "DX-Y.NYB", "decimals": 2, "unit": ""},
     {"id": "gold", "name": "Gold", "subtitle": "Gold futures", "symbol": "GC=F", "decimals": 1, "unit": ""},
+    {"id": "qqq", "name": "QQQ", "subtitle": "Invesco QQQ (Nasdaq-100)", "symbol": "QQQ", "decimals": 2, "unit": ""},
 ]
 
 
@@ -57,6 +58,7 @@ VOLUME = {
     "bonds": [("ZB=F", 1000, "futures"), ("TLT", 1, "etf")],
     "dollar": [("DX=F", 1000, "futures"), ("UUP", 1, "etf")],
     "gold": [("GC=F", 100, "futures"), ("GLD", 1, "etf")],
+    "qqq": [("QQQ", 1, "etf")],
 }
 FUT_NAMES = {"ZN=F": "ZN 10Y note", "ZB=F": "ZB 30Y bond", "DX=F": "DX dollar index", "GC=F": "GC gold"}
 
