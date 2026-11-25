@@ -36,6 +36,9 @@ markets' trading dates), so weekends take no space and every chart, bar strip an
   shows its headline and score. "Collapse all / Expand all" sit in the controls bar. States are saved in
   `localStorage` (default all expanded) and survive refreshes; headers are keyboard buttons (Enter/Space,
   `aria-expanded`).
+- (v1.12.1) Collapsed panels, including the Market Outlook card, stay collapsed across reloads, auto-updates,
+  Price/% switches and new-build self-updates. Settings use stable `fm.*` keys (not tied to a build); if the
+  browser blocks storage the page still works and remembers for the current visit.
 - The controls bar (auto-update, period, Refresh, Price/% toggle, Collapse/Expand all, Data as of / STALE) stays
   pinned at the top while the Outlook and panels scroll beneath it (solid backdrop once the title scrolls away).
 
@@ -129,4 +132,4 @@ python3 scripts/fetch_markets.py   # writes data/markets.json
 python3 -m http.server 8000        # open http://localhost:8000
 ```
 
-v1.12
+v1.12.1

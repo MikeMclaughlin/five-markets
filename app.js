@@ -3,9 +3,21 @@
   const DATA_URL = "data/markets.json";
   const LS_ON = "fm.autoUpdate", LS_PERIOD = "fm.period", LS_CUSTOM = "fm.customMinutes", LS_VIEW = "fm.view";
   let VIEW = "price", lastMs = null, lastDom = null;
+  // Settings store (v1.12.1): stable keys (never tied to build/version), every access guarded, and an
+  // in-memory copy so the page keeps working (and remembers within the visit) if storage is blocked or full.
+  const store = (() => {
+    const mem = {};
+    let ls = null;
+    try { ls = window.localStorage; const k = "fm.__t"; ls.setItem(k, "1"); ls.removeItem(k); } catch (_) { ls = null; }
+    return {
+      get(k) { if (k in mem) return mem[k]; try { return ls ? ls.getItem(k) : null; } catch (_) { return null; } },
+      set(k, v) { mem[k] = String(v); try { if (ls) ls.setItem(k, String(v)); } catch (_) {} },
+    };
+  })();
+  const LS_COLLAPSED = "fm.collapsed";
   const collapsed = new Set();
-  try { (JSON.parse(localStorage.getItem("fm.collapsed") || "[]") || []).forEach((id) => collapsed.add(id)); } catch (_) {}
-  try { if (localStorage.getItem(LS_VIEW) === "pct") VIEW = "pct"; } catch (_) {}
+  try { (JSON.parse(store.get(LS_COLLAPSED) || "[]") || []).forEach((id) => typeof id === "string" && collapsed.add(id)); } catch (_) {}
+  if (store.get(LS_VIEW) === "pct") VIEW = "pct";
   const ORDER = ["stocks", "qqq", "tnx", "bonds", "dollar", "gold"];
   const PLACEHOLDER = [
     ["Stocks", "S&P 500 Equal Weight"], ["QQQ", "Invesco QQQ (Nasdaq-100)"], ["10-Year Yield", "US Treasury yield"],
@@ -455,7 +467,9 @@
 
   function renderOutlook(byId) {
     const o = computeOutlook(byId), box = $("outlook");
-    box.className = "outlook " + o.lvl.cls;
+    box.className = "outlook " + o.lvl.cls; // (v1.12.1) used to wipe "collapsed" on every render
+    box.classList.toggle("collapsed", collapsed.has("outlook"));
+    const oh = box.querySelector(".head"); if (oh) oh.setAttribute("aria-expanded", String(!collapsed.has("outlook")));
     $("olHeadline").textContent = o.lvl.name;
     $("olScore").innerHTML = `Score <b>${fmtScore(o.total)}</b> of ±6.5`;
     $("olText").textContent = o.text;
@@ -502,17 +516,17 @@
     if (data) setStatus(statusText());
   }
   function save() {
-    localStorage.setItem(LS_ON, toggle.checked ? "1" : "0");
-    localStorage.setItem(LS_PERIOD, sel.value);
-    if (custom.value) localStorage.setItem(LS_CUSTOM, custom.value);
+    store.set(LS_ON, toggle.checked ? "1" : "0");
+    store.set(LS_PERIOD, sel.value);
+    if (custom.value) store.set(LS_CUSTOM, custom.value);
   }
 
   // restore settings
   try {
-    toggle.checked = localStorage.getItem(LS_ON) === "1";
-    const p = localStorage.getItem(LS_PERIOD);
+    toggle.checked = store.get(LS_ON) === "1";
+    const p = store.get(LS_PERIOD);
     if (p && [...sel.options].some((o) => o.value === p)) sel.value = p; else sel.value = "5";
-    custom.value = localStorage.getItem(LS_CUSTOM) || "10";
+    custom.value = store.get(LS_CUSTOM) || "10";
   } catch (_) { sel.value = "5"; }
   custom.hidden = sel.value !== "custom";
 
@@ -531,18 +545,17 @@
   viewBtns.forEach((b) => b.addEventListener("click", () => {
     if (VIEW === b.dataset.view) return;
     VIEW = b.dataset.view;
-    try { localStorage.setItem(LS_VIEW, VIEW); } catch (_) {}
+    store.set(LS_VIEW, VIEW);
     syncView(); render();
   }));
   syncView();
 
   // ---------- collapsible panels (v1.10) ----------
-  const LS_COLLAPSED = "fm.collapsed";
   function syncAllCollapsed() {
     const cards = [...panelsEl.querySelectorAll(".card[data-id]")];
     document.body.classList.toggle("all-collapsed", cards.length > 0 && cards.every(c => c.classList.contains("collapsed")));
   }
-  function saveCollapsed() { syncAllCollapsed(); try { localStorage.setItem(LS_COLLAPSED, JSON.stringify([...collapsed])); } catch (_) {} }
+  function saveCollapsed() { syncAllCollapsed(); store.set(LS_COLLAPSED, JSON.stringify([...collapsed])); }
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   function animateHeight(box, mutate) {
     const h0 = box.offsetHeight; mutate(); const h1 = box.offsetHeight;
