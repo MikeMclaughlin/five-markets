@@ -59,8 +59,8 @@ contribution chips and an expandable "How this is scored" note. It is recomputed
 every data refresh. *Rule-based trend read, not a forecast or investment advice.*
 
 ## How updates work
-1. **Data pipeline** – `.github/workflows/update-and-deploy.yml` runs every 30 minutes on weekdays
-   (13:00–23:30 UTC ≈ 8:00 AM–6:30 PM ET), on manual `workflow_dispatch`, and on pushes to `master`.
+1. **Data pipeline** – `.github/workflows/update-and-deploy.yml` runs on weekdays at
+   8:07 AM, 12:07 PM and 4:07 PM ET (13:07, 17:07, 21:07 UTC; cron `7 13,17,21 * * 1-5`), on manual `workflow_dispatch`, and on pushes to `master`.
    It runs `scripts/fetch_markets.py` (Python stdlib only, free Yahoo Finance chart API, no keys),
    commits `data/markets.json` if it changed, and deploys the site to GitHub Pages.
    If a ticker fails to fetch, its last good data is kept.
@@ -77,8 +77,8 @@ every data refresh. *Rule-based trend read, not a forecast or investment advice.
      fetched since the most recent 4:00 PM ET close (after a 4.5-hour grace). Exchange holidays are not modeled.
      A panel whose last daily bar lags the other markets and the expected session date gets a small "Last bar" note.
 
-Note: the page can only be as fresh as the data file, which the workflow refreshes every 30 minutes
-on weekdays (GitHub may delay scheduled runs by a few minutes). Run the workflow manually from the
+Note: the page can only be as fresh as the data file, which the workflow refreshes at 8:07 AM,
+12:07 PM and 4:07 PM ET on weekdays (GitHub may delay scheduled runs by a few minutes). Run the workflow manually from the
 Actions tab for an immediate update.
 
 ## Run locally
