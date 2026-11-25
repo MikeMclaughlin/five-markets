@@ -18,6 +18,26 @@
   const collapsed = new Set();
   try { (JSON.parse(store.get(LS_COLLAPSED) || "[]") || []).forEach((id) => typeof id === "string" && collapsed.add(id)); } catch (_) {}
   if (store.get(LS_VIEW) === "pct") VIEW = "pct";
+  // chart duration (v1.14): months shown, cut from the 3-year data on the client; SMA stays full-history
+  const LS_RANGE = "fm.range", RANGES = [6, 12, 18, 24, 30, 36];
+  let RANGE = 36;
+  { const r = parseInt(store.get(LS_RANGE), 10); if (RANGES.includes(r)) RANGE = r; }
+  function sliceSeries(m, cutoff) {
+    const i0 = m.dates.findIndex((d) => d >= cutoff);
+    const cut = (o, keys) => { const i = o.dates.findIndex((d) => d >= cutoff); if (i <= 0) return o;
+      const c = { ...o }; keys.forEach((k) => { c[k] = o[k].slice(i); }); return c; };
+    if (i0 <= 0 && !(m.volume && m.volume.dates && m.volume.dates[0] < cutoff)) return m;
+    const c = cut(m, ["dates", "close", "sma150"]);
+    if (m.volume && m.volume.dates) c.volume = cut(m.volume, ["dates", "dv", "up", "avg50"]);
+    return c;
+  }
+  function windowed(ms) { // last RANGE months, measured back from the newest bar of any panel
+    if (RANGE >= 36) return ms;
+    const last = ms.reduce((a, m) => (m.dates[m.dates.length - 1] > a ? m.dates[m.dates.length - 1] : a), "");
+    const d = new Date(last + "T00:00:00Z"); d.setUTCMonth(d.getUTCMonth() - RANGE);
+    const cutoff = d.toISOString().slice(0, 10);
+    return ms.map((m) => sliceSeries(m, cutoff));
+  }
   const ORDER = ["stocks", "qqq", "tnx", "bonds", "dollar", "gold"];
   const PLACEHOLDER = [
     ["Stocks", "S&P 500 Equal Weight"], ["QQQ", "Invesco QQQ (Nasdaq-100)"], ["10-Year Yield", "US Treasury yield"],
@@ -99,11 +119,11 @@
     return d;
   }
 
-  // first trading day of every Nth month, N picked from the pixels a month gets (v1.13: 3-year window) so labels
-  // never crowd: 2 (Jan, Mar...), 3 (Jan, Apr, Jul, Oct), 6 (Jan, Jul) or 12 (Jan). N divides 12, so Jan is always a tick.
+  // first trading day of every Nth month, N picked from the pixels a month gets so labels never crowd:
+  // 1 (every month), 2 (Jan, Mar...), 3 (Jan, Apr, Jul, Oct), 6 (Jan, Jul) or 12 (Jan). N divides 12, so Jan is always a tick.
   function tickStep(dom, W) {
     const monthPx = W / Math.max(dom.N / 21, 1);
-    return [2, 3, 6, 12].find((n) => n * monthPx >= 58) || 12;
+    return [1, 2, 3, 6, 12].find((n) => n * monthPx >= 58) || 12;
   }
   function monthTicks(dom, W) {
     const step = tickStep(dom, W), out = [];
@@ -286,7 +306,8 @@
 
   function render() {
     if (!data) return;
-    const ms = ORDER.map((id) => data.markets.find((m) => m.id === id)).filter(Boolean);
+    const full = ORDER.map((id) => data.markets.find((m) => m.id === id)).filter(Boolean);
+    const ms = windowed(full); // pills, values and Outlook come from the newest bar, so they don't change with range
     const dom = domain(ms);
     // Build new DOM off-screen, then swap in one step so nothing blanks.
     const laggers = findLaggers(ms, Date.parse(data.generatedAt));
@@ -553,6 +574,14 @@
     store.set(LS_VIEW, VIEW);
     syncView(); render();
   }));
+  const rangeSel = $("rangeSelect");
+  if (rangeSel) {
+    rangeSel.value = String(RANGE);
+    rangeSel.addEventListener("change", () => {
+      const r = parseInt(rangeSel.value, 10); if (!RANGES.includes(r)) return;
+      RANGE = r; store.set(LS_RANGE, r); render(); // re-slice in place: panels are rebuilt off-screen, never blank
+    });
+  }
   syncView();
 
   // ---------- collapsible panels (v1.10) ----------

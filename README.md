@@ -42,6 +42,12 @@ markets' trading dates), so weekends take no space and every chart, bar strip an
 - The controls bar (auto-update, period, Refresh, Price/% toggle, Collapse/Expand all, Data as of / STALE) stays
   pinned at the top while the Outlook and panels scroll beneath it (solid backdrop once the title scrolls away).
 
+## Chart duration (v1.14)
+A **Show** dropdown in the pinned controls bar picks 6 months, 1 year, 18 months, 2 years, 30 months or 3 years
+(default 3 years). It trims the already-loaded 3-year data on the page (no refetch); the 150-day SMA keeps its
+full-history values, and pills, values and the Outlook always use the latest bar. Month labels adapt (monthly at
+6 months–1 year, every 2 months mid-range, quarterly at 3 years). The choice is remembered under `fm.range`.
+
 ## 3-year window (v1.13)
 Every panel shows ~3 years (~750 trading days) of price, 150-day SMA, % from SMA bars and Dollar Volume on the
 shared trading-day axis. The fetch pulls 5 years so the SMA and 50-day volume average are warmed up from day one.
@@ -137,4 +143,4 @@ python3 scripts/fetch_markets.py   # writes data/markets.json
 python3 -m http.server 8000        # open http://localhost:8000
 ```
 
-v1.13
+v1.14
