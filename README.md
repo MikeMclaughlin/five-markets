@@ -39,6 +39,15 @@ markets' trading dates), so weekends take no space and every chart, bar strip an
 - The controls bar (auto-update, period, Refresh, Price/% toggle, Collapse/Expand all, Data as of / STALE) stays
   pinned at the top while the Outlook and panels scroll beneath it (solid backdrop once the title scrolls away).
 
+## Gap-free bars (v1.11)
+- Dollar Volume and % from SMA bars fill their whole trading-day slot (snapped to pixels), so neighbours touch.
+- Bar dates use each exchange's own time zone with DST (`exchangeTimezoneName`). The old fixed offset shifted
+  summer futures/ICE bars one day earlier, so their panels had empty slots on the shared axis.
+- Evening futures bars (after 6 PM ET, the next session's first minutes) no longer replace the completed day's volume.
+- 10-Year Yield and Bonds keep futures notional (ZN=F / ZB=F). Their low bars in roll weeks (Yahoo's continuous
+  contract stays on the expiring month for a few weeks each quarter) are real reported volume, shown as small bars.
+- A day the source reports no volume at all (e.g. two GC=F days) shows a short grey marker instead of a hole.
+
 ## Dollar Volume strip (v1.4)
 The bottom of each panel shows daily **dollar volume** bars (green = up day, red = down day) on the same
 time axis, with a thin 50-day average line and the latest value. Only real traded volume is used:
@@ -115,4 +124,4 @@ python3 scripts/fetch_markets.py   # writes data/markets.json
 python3 -m http.server 8000        # open http://localhost:8000
 ```
 
-v1.10
+v1.11

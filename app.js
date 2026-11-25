@@ -59,6 +59,14 @@
     };
   }
 
+  // Flush bar edges (v1.11): each trading day owns exactly one slot of width W/N; bars span the whole
+  // slot, snapped to whole pixels so neighbours share an edge (no hairline gaps, no overlaps).
+  function slotEdges(x, t, W, N) {
+    const half = W / Math.max(N, 1) / 2, c = x(t);
+    const l = Math.round(c - half), r = Math.round(c + half);
+    return [l, Math.max(1, r - l)];
+  }
+
   function el(name, attrs, parent) {
     const e = document.createElementNS(NS, name);
     for (const k in attrs) e.setAttribute(k, attrs[k]);
@@ -130,7 +138,7 @@
     const lastP = pricePts[pricePts.length - 1];
     el("circle", { cx: lastP[0], cy: lastP[1], r: 3.5, fill: color }, svg);
 
-    drawVolume(svg, m.volume, x, H - STRIP, STRIP, W);
+    drawVolume(svg, m.volume, x, H - STRIP, STRIP, W, dom.N);
   }
 
   // ---------- % from 150 SMA histogram (v1.9) ----------
@@ -155,11 +163,12 @@
       tx.textContent = (v > 0 ? "+" : "−") + (+Math.abs(v).toFixed(2)) + "%";
     }
     const ts = m.dates.map(toT);
-    const bw = Math.max(1, (W / dom.N) * 0.86), y0 = y(0);
-    const bars = el("g", { class: "pct-bars" }, svg);
+    const y0 = y(0);
+    const bars = el("g", { class: "pct-bars", "shape-rendering": "crispEdges" }, svg);
     pct.forEach((v, i) => {
       const yy = y(v), h = Math.max(0.8, Math.abs(yy - y0));
-      el("rect", { x: (x(ts[i]) - bw / 2).toFixed(1), y: (v >= 0 ? y0 - h : y0).toFixed(1), width: bw.toFixed(1), height: h.toFixed(1),
+      const [bx, bw] = slotEdges(x, ts[i], W, dom.N);
+      el("rect", { x: bx, y: (v >= 0 ? y0 - h : y0).toFixed(1), width: bw, height: h.toFixed(1),
         class: v >= 0 ? "pct-up" : "pct-down" }, bars);
     });
     el("line", { x1: 0, x2: W, y1: y0, y2: y0, class: "pct-zero" }, svg);
@@ -194,7 +203,7 @@
     svg.addEventListener("pointermove", (ev) => { if (ev.pointerType === "mouse") show(ev); });
     svg.addEventListener("pointerdown", (ev) => { show(ev); clearTimeout(hideTimer); if (ev.pointerType !== "mouse") hideTimer = setTimeout(hide, 3500); });
     svg.addEventListener("pointerleave", (ev) => { if (ev.pointerType === "mouse") hide(); });
-    drawVolume(svg, m.volume, x, H - STRIP, STRIP, W);
+    drawVolume(svg, m.volume, x, H - STRIP, STRIP, W, dom.N);
   }
 
   // ---------- dollar volume strip ----------
@@ -206,7 +215,7 @@
     if (a >= 1e3) return "$" + (v / 1e3).toFixed(1) + "K";
     return "$" + Math.round(v);
   }
-  function drawVolume(svg, vol, x, y0, h, W) {
+  function drawVolume(svg, vol, x, y0, h, W, N) {
     const g = el("g", { class: "dv" }, svg);
     el("line", { x1: 0, x2: W, y1: y0 - 6, y2: y0 - 6, class: "dv-sep" }, g);
     const lab = el("text", { x: 2, y: y0 + 6, class: "dv-label" }, g);
@@ -216,13 +225,18 @@
     }
     const ts = vol.dates.map(toT);
     const max = Math.max(...vol.dv, ...vol.avg50.filter((v) => v != null)) || 1;
-    const bw = Math.max(1, (W / Math.max(ts.length, 1)) * 0.72); // ~one slot per trading day
     const yb = y0 + h;
+    const bars = el("g", { "shape-rendering": "crispEdges" }, g);
     vol.dv.forEach((v, i) => {
-      if (!(v > 0)) return;
+      const [bx, bw] = slotEdges(x, ts[i], W, N);
+      if (!(v > 0)) { // the source reported no volume that day: a dim marker, not a silent hole
+        const r = el("rect", { x: bx, y: (yb - 4).toFixed(1), width: bw, height: 4, class: "dv-none" }, bars);
+        el("title", {}, r).textContent = vol.dates[i] + ": no volume reported";
+        return;
+      }
       const bh = Math.max(1, (v / max) * (h - 12));
-      el("rect", { x: (x(ts[i]) - bw / 2).toFixed(1), y: (yb - bh).toFixed(1), width: bw.toFixed(1), height: bh.toFixed(1),
-        class: vol.up[i] ? "dv-up" : "dv-down" }, g);
+      el("rect", { x: bx, y: (yb - bh).toFixed(1), width: bw, height: bh.toFixed(1),
+        class: vol.up[i] ? "dv-up" : "dv-down" }, bars);
     });
     const ap = vol.avg50.map((v, i) => v == null ? null : [x(ts[i]).toFixed(1), (yb - (v / max) * (h - 12)).toFixed(1)]).filter(Boolean);
     if (ap.length > 1) el("path", { d: "M" + ap.map((p) => p.join(",")).join("L"), class: "dv-avg" }, g);

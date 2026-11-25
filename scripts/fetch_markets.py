@@ -22,6 +22,18 @@ MARKETS = [
 ]
 
 
+def _day(t, meta):
+    """Trading date of a Yahoo bar in the exchange's own time zone, DST-aware (v1.11).
+    The old fixed meta.gmtoffset is today's offset; applied to summer bars stamped at 00:00 local
+    it pushed them back one calendar day (Mon->Sun ... Fri->Thu), which misaligned those panels."""
+    try:
+        from zoneinfo import ZoneInfo
+        dt = datetime.fromtimestamp(t, tz=ZoneInfo(meta["exchangeTimezoneName"]))
+    except Exception:
+        dt = datetime.fromtimestamp(t + meta.get("gmtoffset", 0), tz=timezone.utc)
+    return dt.strftime("%Y-%m-%d"), dt.hour
+
+
 def fetch(symbol):
     url = ("https://query1.finance.yahoo.com/v8/finance/chart/"
            + urllib.parse.quote(symbol) + "?range=2y&interval=1d&includePrePost=false")
@@ -34,12 +46,11 @@ def fetch(symbol):
             ts = res["timestamp"]
             closes = res["indicators"]["quote"][0]["close"]
             meta = res.get("meta", {})
-            tz_off = meta.get("gmtoffset", 0)
             pts = {}
             for t, c in zip(ts, closes):
                 if c is None:
                     continue
-                d = datetime.fromtimestamp(t + tz_off, tz=timezone.utc).strftime("%Y-%m-%d")
+                d, _ = _day(t, meta)
                 pts[d] = c  # last value for a date wins (intraday bar for today)
             live = meta.get("regularMarketPrice")
             return sorted(pts.items()), live
@@ -77,13 +88,15 @@ def fetch_ohlcv(symbol):
     if not res:
         raise RuntimeError(f"{symbol}: no chart data")
     res = res[0]
-    off = res.get("meta", {}).get("gmtoffset", 0)
+    meta = res.get("meta", {})
     q = res["indicators"]["quote"][0]
     pts = {}
     for t, c, v in zip(res["timestamp"], q["close"], q["volume"]):
         if c is None:
             continue
-        d = datetime.fromtimestamp(t + off, tz=timezone.utc).strftime("%Y-%m-%d")
+        d, hr = _day(t, meta)
+        if hr >= 18 and d in pts:
+            continue  # evening futures bar = next session's first minutes; keep the completed day
         pts[d] = (c, v or 0)
     return sorted(pts.items())
 
@@ -106,6 +119,7 @@ def build_volume(mid, start_date):
             continue
         vis = dv[i0:]
         zero = sum(1 for x in vis if x <= 0)
+        # roll-week lows on ZN/ZB are real (small) bars, not empty days, so only true zeros count here
         if not vis or zero > 0.1 * len(vis) or vis[-1] <= 0 and vis[-2] <= 0:
             notes.append(f"{sym}: thin/zero volume ({zero}/{len(vis)} empty days)")
             continue

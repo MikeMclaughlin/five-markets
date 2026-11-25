@@ -68,6 +68,7 @@ button:disabled{opacity:.6;cursor:progress}
 .dv-sep{stroke:rgba(255,255,255,.08);stroke-width:1}
 .dv-up{fill:rgba(46,230,160,.55)}
 .dv-down{fill:rgba(255,110,135,.6)}
+.dv-none{fill:rgba(160,172,205,.35)}
 .dv-avg{fill:none;stroke:rgba(235,240,255,.8);stroke-width:1.2}
 .dv-label{font-size:11px;fill:var(--muted)}
 .dv-title{fill:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-weight:600}
