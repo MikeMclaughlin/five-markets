@@ -99,10 +99,14 @@
     return d;
   }
 
-  // first trading day of every 2nd month (Jan, Mar, May...), every 3rd on phones (Jan, Apr, Jul, Oct) so the
-  // 18-month axis (v1.12) stays readable
-  function monthTicks(dom) {
-    const step = window.matchMedia("(max-width:760px)").matches ? 3 : 2, out = [];
+  // first trading day of every Nth month, N picked from the pixels a month gets (v1.13: 3-year window) so labels
+  // never crowd: 2 (Jan, Mar...), 3 (Jan, Apr, Jul, Oct), 6 (Jan, Jul) or 12 (Jan). N divides 12, so Jan is always a tick.
+  function tickStep(dom, W) {
+    const monthPx = W / Math.max(dom.N / 21, 1);
+    return [2, 3, 6, 12].find((n) => n * monthPx >= 58) || 12;
+  }
+  function monthTicks(dom, W) {
+    const step = tickStep(dom, W), out = [];
     dom.ts.forEach((t, i) => {
       const mo = new Date(t).getUTCMonth();
       if (i > 0 && mo !== new Date(dom.ts[i - 1]).getUTCMonth() && mo % step === 0) out.push(t);
@@ -131,7 +135,7 @@
     el("feGaussianBlur", { stdDeviation: "4" }, f);
 
     const g = el("g", { class: "grid" }, svg);
-    monthTicks(dom).forEach((t) => el("line", { x1: x(t), x2: x(t), y1: 0, y2: H }, g));
+    monthTicks(dom, W).forEach((t) => el("line", { x1: x(t), x2: x(t), y1: 0, y2: H }, g));
 
     const ts = m.dates.map(toT);
     const pricePts = ts.map((t, i) => [x(t), y(m.close[i])]);
@@ -167,7 +171,7 @@
     const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
     const y = (v) => top + (1 - (v - lo) / (hi - lo)) * (H - top - bot);
     const g = el("g", { class: "grid" }, svg);
-    monthTicks(dom).forEach((t) => el("line", { x1: x(t), x2: x(t), y1: 0, y2: H }, g));
+    monthTicks(dom, W).forEach((t) => el("line", { x1: x(t), x2: x(t), y1: 0, y2: H }, g));
     const step = niceStep(hi - lo);
     const yl = el("g", { class: "pct-axis" }, svg);
     for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
@@ -268,9 +272,10 @@
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     svg.innerHTML = "";
     const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const ticks = monthTicks(dom), x = xScale(dom, W);
+    const ticks = monthTicks(dom, W), x = xScale(dom, W);
     const W0 = ticks.length ? x(ticks[0]) : W;
-    if (W0 > 40) { const s0 = el("text", { x: 0, y: 16, "text-anchor": "start" }, svg); const d0 = new Date(dom.ts[0]); s0.textContent = names[d0.getUTCMonth()] + " \u2019" + String(d0.getUTCFullYear()).slice(2); }
+    // start label only when it can't touch the first tick's centred label
+    if (W0 > 72) { const s0 = el("text", { x: 0, y: 16, "text-anchor": "start" }, svg); const d0 = new Date(dom.ts[0]); s0.textContent = names[d0.getUTCMonth()] + " \u2019" + String(d0.getUTCFullYear()).slice(2); }
     ticks.forEach((t) => {
       const xx = x(t);
       const tx = el("text", { x: xx, y: 16, "text-anchor": xx < 14 ? "start" : xx > W - 14 ? "end" : "middle" }, svg);

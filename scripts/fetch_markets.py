@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fetch daily closes from Yahoo Finance's public chart API and write data/markets.json.
 
-For each market we keep ~18 months of visible daily closes plus the 150-day
+For each market we keep ~3 years of visible daily closes plus the 150-day
 simple moving average, computed from extra history so the SMA spans the
 whole visible window.
 """
@@ -9,7 +9,7 @@ import json, os, sys, time, urllib.request, urllib.parse
 from datetime import datetime, timezone, timedelta
 
 SMA_N = 150
-VISIBLE_DAYS = 548          # calendar days shown on the chart (~18 months, ~378 trading days; v1.12)
+VISIBLE_DAYS = 1095         # calendar days shown on the chart (~3 years, ~750 trading days; v1.13)
 SLOPE_LOOKBACK = 10         # trading days used to judge SMA slope
 
 MARKETS = [
@@ -36,7 +36,7 @@ def _day(t, meta):
 
 def fetch(symbol):
     url = ("https://query1.finance.yahoo.com/v8/finance/chart/"
-           + urllib.parse.quote(symbol) + "?range=3y&interval=1d&includePrePost=false")
+           + urllib.parse.quote(symbol) + "?range=5y&interval=1d&includePrePost=false")
     last_err = None
     for attempt in range(4):
         try:
@@ -81,7 +81,7 @@ def _et_now():
 
 def fetch_ohlcv(symbol):
     url = ("https://query1.finance.yahoo.com/v8/finance/chart/"
-           + urllib.parse.quote(symbol) + "?range=3y&interval=1d&includePrePost=false")
+           + urllib.parse.quote(symbol) + "?range=5y&interval=1d&includePrePost=false")
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (five-markets)"})
     with urllib.request.urlopen(req, timeout=30) as r:
         res = (json.load(r).get("chart") or {}).get("result")
