@@ -13,10 +13,6 @@ body{background:radial-gradient(1200px 600px at 70% -10%,#16224a 0%,transparent 
 .kicker{font-size:clamp(10px,1.1vw,13px);letter-spacing:.28em;color:var(--muted);font-weight:600}
 h1{font-family:var(--serif);font-weight:600;font-size:clamp(32px,5.2vw,64px);line-height:1.05;margin:.18em 0 0;letter-spacing:-.01em}
 .gold{color:var(--gold)}
-.legend{display:flex;align-items:center;gap:10px;border:1.5px solid var(--green);border-radius:999px;padding:8px 16px;
-  font-size:clamp(12px,1.2vw,14px);color:#d9f9ec;background:rgba(46,230,160,.06);box-shadow:0 0 18px rgba(46,230,160,.15);margin-top:6px}
-.legend b{color:var(--green)}
-.legend-swatch{width:22px;height:3px;border-radius:3px;background:var(--green);box-shadow:0 0 8px var(--green)}
 
 .controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px;margin:22px 0 16px;padding:10px 14px;
   background:rgba(17,26,51,.6);border:1px solid var(--line);border-radius:12px;font-size:14px;color:var(--muted)}
@@ -189,6 +185,5 @@ footer span:last-child{margin-left:auto}
   .asof{margin-left:0;width:100%}
   .status{margin-left:0;width:100%}
   footer span:last-child{margin-left:0}
-  .legend{padding:6px 12px}
 }
 body.all-collapsed .axis-row{visibility:hidden;height:0;overflow:hidden;margin:0}
