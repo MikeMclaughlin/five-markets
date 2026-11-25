@@ -8,11 +8,11 @@ A one-page dashboard of six markets, each plotted as ~12 months of daily closes 
 | Panel | Market | Ticker (Yahoo Finance) |
 |---|---|---|
 | Stocks | S&P 500 Equal Weight index | `^SPXEW` (falls back to `RSP` ETF if unavailable) |
+| QQQ | Invesco QQQ (Nasdaq-100 ETF) | `QQQ` |
 | 10-Year Yield | US 10-year Treasury yield | `^TNX` |
 | Bonds | 30-Year Treasury bond futures | `ZB=F` |
 | US Dollar | US Dollar Index | `DX-Y.NYB` |
 | Gold | Gold futures | `GC=F` |
-| QQQ | Invesco QQQ (Nasdaq-100 ETF) | `QQQ` |
 
 ## Reading it
 - **Yellow line** = 150-day SMA, computed from ~2 years of history so it covers the full visible window.
@@ -29,11 +29,11 @@ time axis, with a thin 50-day average line and the latest value. Only real trade
 | Panel | Primary | Fallback |
 |---|---|---|
 | Stocks | RSP shares × price | — |
+| QQQ | QQQ shares × price | — |
 | 10-Year Yield | ZN=F contracts × price × 1,000 | IEF |
 | Bonds | ZB=F contracts × price × 1,000 | TLT |
 | US Dollar | DX=F contracts × price × 1,000 | UUP |
 | Gold | GC=F contracts × price × 100 | GLD |
-| QQQ | QQQ shares × price | — |
 
 A futures series is skipped for its ETF fallback if Yahoo returns no data or more than 10% empty
 days. If nothing is available the strip says "No volume data". Futures bars for the current day are
@@ -46,11 +46,11 @@ for stocks (intermarket logic, scored from the equity market's point of view):
 | Market | Bullish trend | Bearish trend | Why |
 |---|---|---|---|
 | Stocks | +2 | −2 | the trend itself, double weight |
+| QQQ (Nasdaq-100) | +1 | −1 | risk-on growth confirmation; single weight |
 | 10-Year Yield | −1 | +1 | rising rates tighten financial conditions |
 | Bonds | +1 | −1 | mirrors yields |
 | US Dollar | −1 | +1 | a strong dollar tightens global liquidity and hurts earnings |
 | Gold | −0.5 | +0.5 | fear / inflation hedging; half weight because the signal is ambiguous |
-| QQQ (Nasdaq-100) | +1 | −1 | risk-on growth confirmation; single weight |
 
 Mixed = 0. Total ranges −6.5 to +6.5 and maps to: **≥ +3.5** Strong Tailwind · **+1 to +3** Tailwind ·
 **−0.5 to +0.5** Neutral–Choppy · **−1 to −3** Headwind · **≤ −3.5** Strong Headwind.
@@ -81,10 +81,21 @@ Note: the page can only be as fresh as the data file, which the workflow refresh
 12:07 PM and 4:07 PM ET on weekdays (GitHub may delay scheduled runs by a few minutes). Run the workflow manually from the
 Actions tab for an immediate update.
 
+## Always the latest version (no stale cache)
+GitHub Pages serves files with a 10-minute cache, so the page busts it itself:
+- The deploy runs `scripts/build_site.sh`, which stamps a **build id** (a hash of `index.html`, `app.js`
+  and `style.css`) into `index.html` as `<meta name="build">` and as `?v=<build>` on `app.js` and
+  `style.css`, and writes `version.json`. The id only changes when the code changes, not on data refreshes.
+- `index.html` carries no-cache meta hints; `data/markets.json` and `version.json` are fetched with
+  `cache: "no-store"` plus a `?t=` timestamp.
+- Every data refresh and every 60 seconds the page checks `version.json`. If a newer build is live it
+  navigates to `./?b=<build>` (a fresh URL, so the cached HTML is skipped) while the current page stays on
+  screen until the new one loads. It tries at most once per build per tab, so it can't loop.
+
 ## Run locally
 ```sh
 python3 scripts/fetch_markets.py   # writes data/markets.json
 python3 -m http.server 8000        # open http://localhost:8000
 ```
 
-v1.7
+v1.8

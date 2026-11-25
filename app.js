@@ -2,11 +2,10 @@
   "use strict";
   const DATA_URL = "data/markets.json";
   const LS_ON = "fm.autoUpdate", LS_PERIOD = "fm.period", LS_CUSTOM = "fm.customMinutes";
-  const ORDER = ["stocks", "tnx", "bonds", "dollar", "gold", "qqq"];
+  const ORDER = ["stocks", "qqq", "tnx", "bonds", "dollar", "gold"];
   const PLACEHOLDER = [
-    ["Stocks", "S&P 500 Equal Weight"], ["10-Year Yield", "US Treasury yield"],
-    ["Bonds", "30-Year Treasury bond futures"], ["US Dollar", "Dollar index"], ["Gold", "Gold futures"],
-    ["QQQ", "Invesco QQQ (Nasdaq-100)"]];
+    ["Stocks", "S&P 500 Equal Weight"], ["QQQ", "Invesco QQQ (Nasdaq-100)"], ["10-Year Yield", "US Treasury yield"],
+    ["Bonds", "30-Year Treasury bond futures"], ["US Dollar", "Dollar index"], ["Gold", "Gold futures"]];
   const COLORS = { bullish: "#2ee6a0", bearish: "#ff4d6a", mixed: "#ff8a2b" };
   const NS = "http://www.w3.org/2000/svg";
 
@@ -264,15 +263,42 @@
   }
   setInterval(renderAsOf, 60000);
 
+  // ---------- self-update: reload when a new build is deployed ----------
+  // The deploy stamps a build id into index.html (<meta name="build">, ?v= on app.js/style.css)
+  // and writes version.json. If the deployed build differs from the one running, navigate to a
+  // fresh URL (bypasses the 10-minute HTML cache). Current content stays on screen until the new
+  // page loads. sessionStorage guard: at most one reload attempt per target build (no loops).
+  const BUILD = (document.querySelector('meta[name="build"]') || {}).content || "";
+  const RELOAD_KEY = "fm.reloadedFor";
+  if (/[?&]b=/.test(location.search)) { // tidy the cache-busting param after a self-update
+    try { history.replaceState(null, "", location.pathname + location.hash); } catch (_) {}
+  }
+  let versionInflight = false;
+  function checkVersion() {
+    if (!BUILD || BUILD.startsWith("__") || versionInflight) return; // unstamped local dev copy
+    versionInflight = true;
+    fetch(`version.json?t=${Date.now()}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((v) => {
+        if (!v || !v.build || v.build === BUILD) { sessionStorage.removeItem(RELOAD_KEY); return; }
+        if (sessionStorage.getItem(RELOAD_KEY) === v.build) return; // already tried once for this build
+        sessionStorage.setItem(RELOAD_KEY, v.build);
+        location.replace(location.pathname + "?b=" + encodeURIComponent(v.build) + location.hash);
+      })
+      .catch(() => {})
+      .finally(() => { versionInflight = false; });
+  }
+  setInterval(checkVersion, 60000);
+
   // ---------- market outlook (rule-based, from the equity market's point of view) ----------
   // sign: +1 means "bullish trend in this market is good for stocks", -1 means it is bad.
   const RULES = {
     stocks: { w: 2, sign: +1, label: "Stocks" },
+    qqq: { w: 1, sign: +1, label: "QQQ" },
     tnx: { w: 1, sign: -1, label: "10Y Yield" },
     bonds: { w: 1, sign: +1, label: "Bonds" },
     dollar: { w: 1, sign: -1, label: "Dollar" },
     gold: { w: 0.5, sign: -1, label: "Gold" },
-    qqq: { w: 1, sign: +1, label: "QQQ" },
   };
   const PHRASE = {
     tnx: { bullish: "rising yields", bearish: "falling yields" },
@@ -344,7 +370,7 @@
       .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then((j) => {
         if (!j || !Array.isArray(j.markets) || !j.markets.length) throw new Error("bad data");
-        data = j; render(); setStatus(statusText());
+        data = j; render(); setStatus(statusText()); checkVersion();
       })
       .catch((e) => {
         setStatus(`Couldn't refresh (${e.message}). Showing last good data.`, true);

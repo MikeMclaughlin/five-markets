@@ -14,11 +14,11 @@ SLOPE_LOOKBACK = 10         # trading days used to judge SMA slope
 
 MARKETS = [
     {"id": "stocks", "name": "Stocks", "subtitle": "S&P 500 Equal Weight", "symbol": "^SPXEW", "fallback": "RSP", "decimals": 2, "unit": ""},
+    {"id": "qqq", "name": "QQQ", "subtitle": "Invesco QQQ (Nasdaq-100)", "symbol": "QQQ", "decimals": 2, "unit": ""},
     {"id": "tnx", "name": "10-Year Yield", "subtitle": "US Treasury yield", "symbol": "^TNX", "decimals": 3, "unit": "%"},
     {"id": "bonds", "name": "Bonds", "subtitle": "30-Year Treasury bond futures", "symbol": "ZB=F", "decimals": 3, "unit": ""},
     {"id": "dollar", "name": "US Dollar", "subtitle": "Dollar index", "symbol": "DX-Y.NYB", "decimals": 2, "unit": ""},
     {"id": "gold", "name": "Gold", "subtitle": "Gold futures", "symbol": "GC=F", "decimals": 1, "unit": ""},
-    {"id": "qqq", "name": "QQQ", "subtitle": "Invesco QQQ (Nasdaq-100)", "symbol": "QQQ", "decimals": 2, "unit": ""},
 ]
 
 
