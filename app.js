@@ -499,8 +499,83 @@
     $("olHeadline").textContent = o.lvl.name;
     $("olScore").innerHTML = `Score <b>${fmtScore(o.total)}</b> of ±6.5`;
     $("olText").textContent = o.text;
+    renderSwings(); // does not feed the Outlook score
     $("olChips").innerHTML = o.chips.map((c) =>
       `<span class="chip ${c.pts > 0 ? "pos" : c.pts < 0 ? "neg" : "zero"}">${c.label} <span class="st">${c.id === "tnx" && c.trend !== "mixed" ? (c.trend === "bullish" ? "rising" : "falling") : c.trend}</span> <b>${fmtScore(c.pts)}</b></span>`).join("");
+  }
+
+  // ---------- swing report (v1.15): where each market's % from 150 SMA swing stands ----------
+  // Zigzag on pct = (close/sma150 - 1) * 100 over the full history in markets.json (not the display range).
+  // While rising, a drop >= threshold below the running high confirms a PEAK at the high; while falling, a rise
+  // >= threshold above the running low confirms a TROUGH at the low. Lengths are counted in trading days (bars).
+  const SWING_TH = { stocks: 1.45, qqq: 3.8, tnx: 3.55, bonds: 1.48, dollar: 1.61, gold: 7.29 };
+  const NYSE_HOLIDAYS = new Set([
+    "2026-01-01", "2026-01-19", "2026-02-16", "2026-04-03", "2026-05-25", "2026-06-19", "2026-07-03", "2026-09-07", "2026-11-26", "2026-12-25",
+    "2027-01-01", "2027-01-18", "2027-02-15", "2027-03-26", "2027-05-31", "2027-06-18", "2027-07-05", "2027-09-06", "2027-11-25", "2027-12-24"]);
+  function addTradingDays(iso, n) { // forward over US trading days (weekends + NYSE holidays skipped)
+    const d = new Date(iso + "T00:00:00Z");
+    while (n > 0) {
+      d.setUTCDate(d.getUTCDate() + 1);
+      const wd = d.getUTCDay();
+      if (wd !== 0 && wd !== 6 && !NYSE_HOLIDAYS.has(d.toISOString().slice(0, 10))) n--;
+    }
+    return d.toISOString().slice(0, 10);
+  }
+  function quantile(arr, p) { // linear interpolation between order statistics (inclusive)
+    const a = [...arr].sort((x, y) => x - y), k = (a.length - 1) * p, f = Math.floor(k), c = Math.min(f + 1, a.length - 1);
+    return a[f] + (a[c] - a[f]) * (k - f);
+  }
+  function swingFor(m, th, lastStockDate) {
+    let n = m.dates.length;
+    while (n > 0 && m.dates[n - 1] > lastStockDate) n--; // trailing partial-day bar after the latest Stocks bar
+    if (n < 20) return null;
+    const P = []; for (let i = 0; i < n; i++) P.push((m.close[i] / m.sma150[i] - 1) * 100);
+    const turns = []; let dir = 0, hi = P[0], lo = P[0], hiI = 0, loI = 0;
+    for (let i = 0; i < n; i++) {
+      const v = P[i];
+      if (dir >= 0 && v > hi) { hi = v; hiI = i; }
+      if (dir <= 0 && v < lo) { lo = v; loI = i; }
+      if (dir >= 0 && hi - v >= th) { turns.push({ k: "P", i: hiI }); dir = -1; lo = v; loI = i; }
+      else if (dir <= 0 && v - lo >= th) { turns.push({ k: "T", i: loI }); dir = 1; hi = v; hiI = i; }
+    }
+    if (turns.length < 2) return null;
+    const last = turns[turns.length - 1], rising = last.k === "T";
+    const lens = []; // same kind of swing as the current one: trough->peak if rising, peak->trough if falling
+    for (let j = 1; j < turns.length; j++) if (turns[j - 1].k === last.k) lens.push(turns[j].i - turns[j - 1].i);
+    if (!lens.length) return null;
+    const med = quantile(lens, 0.5), p25 = quantile(lens, 0.25), p75 = quantile(lens, 0.75);
+    const start = m.dates[last.i], age = n - 1 - last.i;
+    return { rising, start, age, pct: P[n - 1], samples: lens.length, med, p25, p75,
+      next: addTradingDays(start, Math.round(med)), from: addTradingDays(start, Math.round(p25)), to: addTradingDays(start, Math.round(p75)),
+      overdue: age > p75, few: lens.length < 10 };
+  }
+  let swingCacheFor = null;
+  function renderSwings() {
+    if (!data || swingCacheFor === data) return; // once per data load; previous rows stay until new data arrives
+    const box = $("olSwing"); if (!box) return;
+    const byId = Object.fromEntries(data.markets.map((m) => [m.id, m]));
+    const st = byId.stocks; if (!st) return;
+    const lastStock = st.dates[st.dates.length - 1];
+    const md = (iso) => new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    const rows = ORDER.map((id) => {
+      const m = byId[id]; if (!m) return "";
+      const s = swingFor(m, SWING_TH[id], lastStock);
+      const name = RULES[id] ? RULES[id].label : m.name;
+      if (!s) return `<tr><th scope="row">${esc(name)}</th><td colspan="6" class="muted">not enough swings yet</td></tr>`;
+      const tags = (s.overdue ? ` <span class="sw-tag od">Overdue</span>` : "") + (s.few ? ` <span class="sw-tag few">Few swings</span>` : "");
+      return `<tr><th scope="row">${esc(name)}</th>` +
+        `<td class="${s.rising ? "up" : "down"}">${s.rising ? "▲ Rising since trough" : "▼ Falling since peak"}</td>` +
+        `<td>${md(s.start)}</td><td class="num">${s.age}d</td>` +
+        `<td class="num">${s.pct >= 0 ? "+" : "−"}${Math.abs(s.pct).toFixed(1)}%</td>` +
+        `<td class="num">${Math.round(s.p25)}–${Math.round(s.p75)}d</td>` +
+        `<td>${s.rising ? "Peak" : "Trough"} ~${md(s.next)} <span class="muted">(${md(s.from)}–${md(s.to)})</span>${tags}</td></tr>`;
+    }).join("");
+    box.innerHTML = `<div class="sw-title">Swing report <span class="muted">· % from 150 SMA swings</span></div>
+      <div class="sw-wrap"><table class="sw-table"><thead><tr><th>Market</th><th>Swing</th><th>Since</th><th class="num">Age</th>
+      <th class="num">% from SMA</th><th class="num">Usual length</th><th>Next turn window</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="sw-note">Timing averages from the past 3 years, not a forecast.</div>`;
+    box.hidden = false;
+    swingCacheFor = data;
   }
 
   // ---------- data loading ----------
