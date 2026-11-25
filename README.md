@@ -30,6 +30,15 @@ date and %. The choice is saved in `localStorage` (default Price). Pills, Dollar
 Outlook card are the same in both views. All panels share one trading-day x-axis (the union of the
 markets' trading dates), so weekends take no space and every chart, bar strip and month label lines up.
 
+## Collapsible panels and pinned controls (v1.10)
+- Click/tap a panel's header (or its chevron) to collapse or expand it, from the Market Outlook card through
+  Gold. A collapsed panel is one compact row with the name and its Above/Below pill (%); the collapsed Outlook
+  shows its headline and score. "Collapse all / Expand all" sit in the controls bar. States are saved in
+  `localStorage` (default all expanded) and survive refreshes; headers are keyboard buttons (Enter/Space,
+  `aria-expanded`).
+- The controls bar (auto-update, period, Refresh, Price/% toggle, Collapse/Expand all, Data as of / STALE) stays
+  pinned at the top while the Outlook and panels scroll beneath it (solid backdrop once the title scrolls away).
+
 ## Dollar Volume strip (v1.4)
 The bottom of each panel shows daily **dollar volume** bars (green = up day, red = down day) on the same
 time axis, with a thin 50-day average line and the latest value. Only real traded volume is used:
@@ -106,4 +115,4 @@ python3 scripts/fetch_markets.py   # writes data/markets.json
 python3 -m http.server 8000        # open http://localhost:8000
 ```
 
-v1.9
+v1.10

@@ -2,7 +2,9 @@
   "use strict";
   const DATA_URL = "data/markets.json";
   const LS_ON = "fm.autoUpdate", LS_PERIOD = "fm.period", LS_CUSTOM = "fm.customMinutes", LS_VIEW = "fm.view";
-  let VIEW = "price";
+  let VIEW = "price", lastMs = null, lastDom = null;
+  const collapsed = new Set();
+  try { (JSON.parse(localStorage.getItem("fm.collapsed") || "[]") || []).forEach((id) => collapsed.add(id)); } catch (_) {}
   try { if (localStorage.getItem(LS_VIEW) === "pct") VIEW = "pct"; } catch (_) {}
   const ORDER = ["stocks", "qqq", "tnx", "bonds", "dollar", "gold"];
   const PLACEHOLDER = [
@@ -257,18 +259,20 @@
     const frag = document.createDocumentFragment();
     ms.forEach((m) => {
       const card = document.createElement("article");
-      card.className = "card " + (m.above ? "p-above" : "p-below");
+      card.className = "card " + (m.above ? "p-above" : "p-below") + (collapsed.has(m.id) ? " collapsed" : "");
+      card.dataset.id = m.id;
       const pv = (m.last / m.smaLast - 1) * 100;
       const pct = (pv >= 0 ? "+" : "−") + Math.abs(pv).toFixed(1) + "%";
       card.innerHTML = `
         <div class="info">
-          <div class="name">${esc(m.name)}</div>
+          <div class="head" role="button" tabindex="0" aria-expanded="${!collapsed.has(m.id)}" aria-controls="chart-${m.id}" data-panel="${m.id}"><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><span class="name">${esc(m.name)}</span>
+            <span class="pill mini ${m.above ? "up" : "down"}">${m.above ? "Above" : "Below"} 150 SMA<span class="pct">${pct}</span></span></div>
           <div class="sub">${esc(m.subtitle)} · ${esc(m.symbol)}</div>
           ${laggers[m.id] ? `<span class="lag">Last bar ${esc(laggers[m.id])} · lags other markets</span>` : ""}
           <div class="vals"><span>Last</span><b>${fmtNum(m.last, m.decimals, m.unit)}</b>
             <span>150 SMA</span><b class="s">${fmtNum(m.smaLast, m.decimals, m.unit)}</b></div>
         </div>
-        <div class="chart">
+        <div class="chart" id="chart-${m.id}">
           <span class="pill ${m.above ? "up" : "down"}">${m.above ? "Above" : "Below"} 150 SMA<span class="pct">${pct}</span></span>
           <span class="trend ${m.trend}">${m.trend} · SMA ${m.smaSlope}</span>
           <svg role="img" aria-label="${esc(m.name)} daily close and 150-day SMA"></svg>
@@ -277,8 +281,11 @@
     });
     panelsEl.replaceChildren(frag);
     renderOutlook(Object.fromEntries(ms.map((m) => [m.id, m])));
-    panelsEl.querySelectorAll(".card").forEach((c, i) => drawChart(c.querySelector("svg"), ms[i], dom));
+    lastMs = ms; lastDom = dom;
+    // collapsed panels are drawn when expanded (so their charts get the right size)
+    panelsEl.querySelectorAll(".card").forEach((c, i) => { if (!c.classList.contains("collapsed")) drawChart(c.querySelector(".chart svg"), ms[i], dom); });
     drawAxis(dom);
+    syncAllCollapsed();
     $("lastUpdated").textContent = etFmt.format(new Date(data.generatedAt)) + " ET";
     renderAsOf();
   }
@@ -511,6 +518,58 @@
     syncView(); render();
   }));
   syncView();
+
+  // ---------- collapsible panels (v1.10) ----------
+  const LS_COLLAPSED = "fm.collapsed";
+  function syncAllCollapsed() {
+    const cards = [...panelsEl.querySelectorAll(".card[data-id]")];
+    document.body.classList.toggle("all-collapsed", cards.length > 0 && cards.every(c => c.classList.contains("collapsed")));
+  }
+  function saveCollapsed() { syncAllCollapsed(); try { localStorage.setItem(LS_COLLAPSED, JSON.stringify([...collapsed])); } catch (_) {} }
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function animateHeight(box, mutate) {
+    const h0 = box.offsetHeight; mutate(); const h1 = box.offsetHeight;
+    if (reduceMotion || !box.animate || h0 === h1) return;
+    box.style.overflow = "hidden";
+    const a = box.animate([{ height: h0 + "px" }, { height: h1 + "px" }], { duration: 200, easing: "cubic-bezier(.2,.7,.3,1)" });
+    a.onfinish = a.oncancel = () => { box.style.overflow = ""; };
+  }
+  function setPanel(id, collapse, animate = true) {
+    if (collapse) collapsed.add(id); else collapsed.delete(id);
+    const box = id === "outlook" ? $("outlook") : panelsEl.querySelector(`.card[data-id="${id}"]`);
+    if (!box) return;
+    const apply = () => {
+      box.classList.toggle("collapsed", collapse);
+      const head = box.querySelector(".head"); if (head) head.setAttribute("aria-expanded", String(!collapse));
+      if (!collapse && id !== "outlook" && lastMs) {
+        const m = lastMs.find((x) => x.id === id);
+        if (m) drawChart(box.querySelector(".chart svg"), m, lastDom);
+      }
+    };
+    animate ? animateHeight(box, apply) : apply();
+  }
+  function togglePanel(id) { setPanel(id, !collapsed.has(id)); saveCollapsed(); }
+  document.addEventListener("click", (ev) => {
+    const head = ev.target.closest(".head[data-panel]");
+    if (head) { togglePanel(head.dataset.panel); return; }
+    const bulk = ev.target.closest("[data-bulk]");
+    if (bulk) {
+      const c = bulk.dataset.bulk === "collapse";
+      ["outlook", ...ORDER].forEach((id) => setPanel(id, c));
+      saveCollapsed();
+    }
+  });
+  document.addEventListener("keydown", (ev) => {
+    const head = ev.target.closest && ev.target.closest(".head[data-panel]");
+    if (head && (ev.key === "Enter" || ev.key === " " || ev.key === "Spacebar")) { ev.preventDefault(); togglePanel(head.dataset.panel); }
+  });
+  if (collapsed.has("outlook")) setPanel("outlook", true, false);
+
+  // ---------- pinned top bar: compact title appears once the big title scrolls away ----------
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(([e]) => document.body.classList.toggle("scrolled", !e.isIntersecting), { threshold: 0 })
+      .observe(document.querySelector("h1"));
+  }
 
   renderSkeleton();
   load().then(schedule);

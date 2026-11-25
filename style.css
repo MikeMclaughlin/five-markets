@@ -91,7 +91,33 @@ button:disabled{opacity:.6;cursor:progress}
 .tip b{font-variant-numeric:tabular-nums}.tip b.up{color:var(--green)}.tip b.down{color:var(--red)}
 .k-pct{background:linear-gradient(90deg,rgba(46,230,160,.85) 50%,rgba(255,77,106,.9) 50%);height:8px!important;width:14px!important}
 body:not(.view-pct) .k-view-pct,body.view-pct .k-view-price{display:none}
-.skeleton .info *,.skeleton .chart{opacity:.35}
+/* v1.10: collapsible panels */
+.head{cursor:pointer;display:flex;align-items:center;gap:8px;min-width:0;border-radius:8px;outline:none;-webkit-tap-highlight-color:transparent}
+.head:focus-visible{box-shadow:0 0 0 2px var(--sma)}
+.chev{flex:none;width:18px;height:18px;fill:none;stroke:var(--muted);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transform:rotate(90deg);transition:transform .2s ease}
+.head:hover .chev{stroke:var(--text)}
+.collapsed .chev{transform:rotate(0)}
+.pill.mini{position:static;display:none;margin-left:auto;font-size:12px;padding:3px 10px}
+.card.collapsed{grid-template-columns:1fr;min-height:0}
+.card.collapsed .info{padding:10px 16px}
+.card.collapsed .sub,.card.collapsed .lag,.card.collapsed .vals,.card.collapsed .chart{display:none}
+.card.collapsed .name{font-size:clamp(18px,1.8vw,22px)}
+.card.collapsed .pill.mini{display:inline-block}
+.outlook .ol-head{margin-top:6px}
+.outlook.collapsed{padding-top:10px;padding-bottom:10px}
+.outlook.collapsed .ol-kicker,.outlook.collapsed .ol-body{display:none}
+.outlook.collapsed .ol-head{margin-top:0}
+.outlook.collapsed .ol-head h2{font-size:clamp(20px,2vw,26px)}
+.ol-head .ol-score{margin-left:auto}
+.linkbtn{background:none;border:0;padding:2px 2px;color:var(--muted);font-size:12.5px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.linkbtn:hover{color:var(--text);border:0}
+.bulk{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+/* v1.10: pinned top bar */
+.sticky-bar{position:sticky;top:0;z-index:20;padding:8px 0;margin:14px 0 8px}
+.sticky-bar::before{content:"";position:absolute;inset:0 calc(50% - 50vw);background:var(--bg);box-shadow:0 6px 16px rgba(0,0,0,.35);z-index:-1;opacity:0;transition:opacity .15s}
+body.scrolled .sticky-bar::before{opacity:1}
+.sticky-bar .controls{margin:0;background:#111a33}
+body.scrolled .skeleton .info *,.skeleton .chart{opacity:.35}
 .shimmer{position:absolute;inset:18px 18px 18px 0;border-radius:10px;background:linear-gradient(90deg,#16224a 0,#1d2b58 50%,#16224a 100%);background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 
@@ -134,6 +160,13 @@ footer span:last-child{margin-left:auto}
 
 @media (max-width:760px){
   .outlook{padding:14px 14px 12px}
+  .card:not(.collapsed) .head .name{margin-right:auto}
+  .card.collapsed .info{padding:10px 12px}
+  .sticky-bar{margin:10px 0 6px;padding:6px 0}
+  .sticky-bar .controls{gap:6px 10px;padding:8px 10px;font-size:13px}
+  .sticky-bar .controls select,.sticky-bar .controls button:not(.linkbtn){padding:5px 8px;font-size:13px}
+    .bulk{margin-left:auto;order:6}
+  .sticky-bar .asof{width:auto;order:5;font-size:12.5px}
   .ol-kicker{font-size:10px;letter-spacing:.16em}
   .chip{font-size:12px;padding:3px 9px}
   .card{grid-template-columns:1fr;min-height:0}
@@ -157,3 +190,4 @@ footer span:last-child{margin-left:auto}
   footer span:last-child{margin-left:0}
   .legend{padding:6px 12px}
 }
+body.all-collapsed .axis-row{visibility:hidden;height:0;overflow:hidden;margin:0}
