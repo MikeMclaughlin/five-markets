@@ -557,6 +557,15 @@
     const st = byId.stocks; if (!st) return;
     const lastStock = st.dates[st.dates.length - 1];
     const md = (iso) => new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    // never show a past date: compare with today's date in New York (YYYY-MM-DD)
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    const nextCell = (s) => {
+      const kind = s.rising ? "Peak" : "Trough";
+      if (s.overdue || s.to < today) return `<span class="sw-due">Overdue: any day now</span>`;
+      if (s.next < today) return `${kind} now through ${md(s.to)}`;
+      if (s.from < today) return `${kind} ~${md(s.next)} <span class="muted">(now through ${md(s.to)})</span>`;
+      return `${kind} ~${md(s.next)} <span class="muted">(${md(s.from)}–${md(s.to)})</span>`;
+    };
     const rows = ORDER.map((id) => {
       const m = byId[id]; if (!m) return "";
       const s = swingFor(m, SWING_TH[id], lastStock);
@@ -568,7 +577,7 @@
         `<td>${md(s.start)}</td><td class="num">${s.age}d</td>` +
         `<td class="num">${s.pct >= 0 ? "+" : "−"}${Math.abs(s.pct).toFixed(1)}%</td>` +
         `<td class="num">${Math.round(s.p25)}–${Math.round(s.p75)}d</td>` +
-        `<td>${s.rising ? "Peak" : "Trough"} ~${md(s.next)} <span class="muted">(${md(s.from)}–${md(s.to)})</span>${tags}</td></tr>`;
+        `<td>${nextCell(s)}${tags}</td></tr>`;
     }).join("");
     box.innerHTML = `<div class="sw-title">Swing report <span class="muted">· % from 150 SMA swings</span></div>
       <div class="sw-wrap"><table class="sw-table"><thead><tr><th>Market</th><th>Swing</th><th>Since</th><th class="num">Age</th>
