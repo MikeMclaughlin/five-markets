@@ -2,7 +2,7 @@
 
 Live page: **https://mikemclaughlin.github.io/five-markets/**
 
-A one-page dashboard of six markets, each plotted as ~12 months of daily closes with its
+A one-page dashboard of six markets, each plotted as ~18 months of daily closes with its
 **150-day simple moving average** (the yellow line).
 
 | Panel | Market | Ticker (Yahoo Finance) |
@@ -15,7 +15,7 @@ A one-page dashboard of six markets, each plotted as ~12 months of daily closes 
 | Gold | Gold futures | `GC=F` |
 
 ## Reading it
-- **Yellow line** = 150-day SMA, computed from ~2 years of history so it covers the full visible window.
+- **Yellow line** = 150-day SMA, computed from ~3 years of history so it covers the full visible window.
 - **Price-line glow**: green = price above the SMA *and* the SMA sloping up (bullish);
   red = price below *and* SMA sloping down (bearish); amber = mixed. Slope = SMA today vs 10 trading days ago.
 - **Top-right pill** on each panel: "Above 150 SMA" / "Below 150 SMA" with % distance from the SMA.
@@ -38,6 +38,11 @@ markets' trading dates), so weekends take no space and every chart, bar strip an
   `aria-expanded`).
 - The controls bar (auto-update, period, Refresh, Price/% toggle, Collapse/Expand all, Data as of / STALE) stays
   pinned at the top while the Outlook and panels scroll beneath it (solid backdrop once the title scrolls away).
+
+## 18-month window (v1.12)
+Every panel shows ~18 months (~378 trading days) of price, 150-day SMA, % from SMA bars and Dollar Volume on
+the shared trading-day axis. The fetch pulls 3 years from Yahoo so the 150-day SMA and the 50-day volume average
+are fully warmed up from the first visible day.
 
 ## Gap-free bars (v1.11)
 - Dollar Volume and % from SMA bars fill their whole trading-day slot (snapped to pixels), so neighbours touch.
@@ -124,4 +129,4 @@ python3 scripts/fetch_markets.py   # writes data/markets.json
 python3 -m http.server 8000        # open http://localhost:8000
 ```
 
-v1.11
+v1.12

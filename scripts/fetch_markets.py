@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fetch daily closes from Yahoo Finance's public chart API and write data/markets.json.
 
-For each market we keep ~12 months of visible daily closes plus the 150-day
+For each market we keep ~18 months of visible daily closes plus the 150-day
 simple moving average, computed from extra history so the SMA spans the
 whole visible window.
 """
@@ -9,7 +9,7 @@ import json, os, sys, time, urllib.request, urllib.parse
 from datetime import datetime, timezone, timedelta
 
 SMA_N = 150
-VISIBLE_DAYS = 365          # calendar days shown on the chart
+VISIBLE_DAYS = 548          # calendar days shown on the chart (~18 months, ~378 trading days; v1.12)
 SLOPE_LOOKBACK = 10         # trading days used to judge SMA slope
 
 MARKETS = [
@@ -36,7 +36,7 @@ def _day(t, meta):
 
 def fetch(symbol):
     url = ("https://query1.finance.yahoo.com/v8/finance/chart/"
-           + urllib.parse.quote(symbol) + "?range=2y&interval=1d&includePrePost=false")
+           + urllib.parse.quote(symbol) + "?range=3y&interval=1d&includePrePost=false")
     last_err = None
     for attempt in range(4):
         try:
@@ -81,7 +81,7 @@ def _et_now():
 
 def fetch_ohlcv(symbol):
     url = ("https://query1.finance.yahoo.com/v8/finance/chart/"
-           + urllib.parse.quote(symbol) + "?range=2y&interval=1d&includePrePost=false")
+           + urllib.parse.quote(symbol) + "?range=3y&interval=1d&includePrePost=false")
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (five-markets)"})
     with urllib.request.urlopen(req, timeout=30) as r:
         res = (json.load(r).get("chart") or {}).get("result")
@@ -180,6 +180,25 @@ def build(m):
     }
 
 
+def align(markets):
+    """Shared calendar (v1.12): keep a date only if at least half the panels traded it, and start every
+    panel on the same first day. Drops lone holiday stubs (e.g. futures/ICE bars on Jul 4 or Memorial
+    Day, usually with zero volume) that would otherwise open an empty slot in every other panel."""
+    from collections import Counter
+    cnt = Counter(d for m in markets for d in m["dates"])
+    first = max(m["dates"][0] for m in markets)
+    keep = {d for d, c in cnt.items() if 2 * c >= len(markets) and d >= first}
+    for m in markets:
+        idx = [i for i, d in enumerate(m["dates"]) if d in keep]
+        for k in ("dates", "close", "sma150"):
+            m[k] = [m[k][i] for i in idx]
+        v = m.get("volume")
+        if v:
+            idx = [i for i, d in enumerate(v["dates"]) if d in keep]
+            for k in ("dates", "dv", "up", "avg50"):
+                v[k] = [v[k][i] for i in idx]
+
+
 def main():
     out_path = os.path.join(os.path.dirname(__file__), "..", "data", "markets.json")
     out = {"generatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -202,6 +221,7 @@ def main():
                 out["markets"].append(old[m["id"]])  # keep last good data
     if failures == len(MARKETS):
         sys.exit("all fetches failed; leaving existing data untouched")
+    align(out["markets"])
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w") as f:
         json.dump(out, f, separators=(",", ":"))

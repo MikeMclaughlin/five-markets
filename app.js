@@ -62,8 +62,8 @@
   // Flush bar edges (v1.11): each trading day owns exactly one slot of width W/N; bars span the whole
   // slot, snapped to whole pixels so neighbours share an edge (no hairline gaps, no overlaps).
   function slotEdges(x, t, W, N) {
-    const half = W / Math.max(N, 1) / 2, c = x(t);
-    const l = Math.round(c - half), r = Math.round(c + half);
+    const slot = W / Math.max(N, 1), k = Math.round(x(t) / slot - 0.5); // slot index, immune to float noise
+    const l = Math.round(k * slot), r = Math.round((k + 1) * slot);
     return [l, Math.max(1, r - l)];
   }
 
@@ -87,11 +87,13 @@
     return d;
   }
 
-  function monthTicks(dom) { // first trading day of Jan, Mar, May, Jul, Sep, Nov
-    const out = [];
+  // first trading day of every 2nd month (Jan, Mar, May...), every 3rd on phones (Jan, Apr, Jul, Oct) so the
+  // 18-month axis (v1.12) stays readable
+  function monthTicks(dom) {
+    const step = window.matchMedia("(max-width:760px)").matches ? 3 : 2, out = [];
     dom.ts.forEach((t, i) => {
       const mo = new Date(t).getUTCMonth();
-      if (i > 0 && mo !== new Date(dom.ts[i - 1]).getUTCMonth() && mo % 2 === 0) out.push(t);
+      if (i > 0 && mo !== new Date(dom.ts[i - 1]).getUTCMonth() && mo % step === 0) out.push(t);
     });
     return out;
   }
@@ -256,11 +258,12 @@
     const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const ticks = monthTicks(dom), x = xScale(dom, W);
     const W0 = ticks.length ? x(ticks[0]) : W;
-    if (W0 > 40) { const s0 = el("text", { x: 0, y: 16, "text-anchor": "start" }, svg); s0.textContent = names[new Date(dom.ts[0]).getUTCMonth()]; }
+    if (W0 > 40) { const s0 = el("text", { x: 0, y: 16, "text-anchor": "start" }, svg); const d0 = new Date(dom.ts[0]); s0.textContent = names[d0.getUTCMonth()] + " \u2019" + String(d0.getUTCFullYear()).slice(2); }
     ticks.forEach((t) => {
       const xx = x(t);
       const tx = el("text", { x: xx, y: 16, "text-anchor": xx < 14 ? "start" : xx > W - 14 ? "end" : "middle" }, svg);
-      tx.textContent = names[new Date(t).getUTCMonth()];
+      const d = new Date(t); // January carries the year so the two Novembers etc. can't be confused
+      tx.textContent = names[d.getUTCMonth()] + (d.getUTCMonth() === 0 ? " \u2019" + String(d.getUTCFullYear()).slice(2) : "");
     });
   }
 
